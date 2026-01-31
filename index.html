@@ -13,6 +13,7 @@
             --success: #09ab3b;
             --danger: #ff2b2b;
             --gray: #808495;
+            --font-size-std: 1rem; /* Ukuran font seragam */
         }
 
         body {
@@ -46,32 +47,36 @@
             font-weight: 600;
             margin-bottom: 1rem;
             color: var(--text);
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 8px;
         }
 
-        /* Input Groups */
-        .row { display: flex; gap: 10px; margin-bottom: 10px; }
-        .col { flex: 1; }
+        /* Layout Grid */
+        .row { display: flex; gap: 10px; margin-bottom: 15px; align-items: flex-end; }
+        .col { flex: 1; position: relative; }
 
         label {
             display: block;
             font-size: 0.8rem;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
             color: var(--gray);
+            font-weight: 500;
         }
 
-        /* Streamlit-like Inputs */
+        /* Standardized Inputs */
         input[type="text"], input[type="number"], select {
             width: 100%;
-            padding: 0.5rem;
+            padding: 0.6rem;
             border: 1px solid var(--border);
             border-radius: 0.25rem;
-            font-size: 1rem;
+            font-size: var(--font-size-std); /* Font sama besar */
             outline: none;
             box-sizing: border-box;
             color: var(--text);
             font-weight: 500;
             text-align: center;
             transition: border-color 0.2s;
+            height: 42px; /* Tinggi seragam */
         }
 
         input:focus, select:focus {
@@ -79,10 +84,49 @@
             box-shadow: 0 0 0 1px var(--primary);
         }
 
-        /* Hide Number Spinners */
+        /* Hide HTML Number Arrows */
         input::-webkit-outer-spin-button,
         input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
+
+        /* --- PLUS MINUS GROUP STYLING --- */
+        .input-group {
+            display: flex;
+            align-items: center;
+        }
+        .input-group button {
+            background-color: #f0f2f6;
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-weight: bold;
+            font-size: 1.2rem;
+            width: 42px;
+            height: 42px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+        .input-group button:active { background-color: #e0e0e0; }
+        
+        .input-group .btn-minus { border-radius: 0.25rem 0 0 0.25rem; border-right: none; }
+        .input-group .btn-plus { border-radius: 0 0.25rem 0.25rem 0; border-left: none; }
+        .input-group input { border-radius: 0; z-index: 1; }
+
+        /* --- RISK SWAP STYLING --- */
+        .risk-preview {
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--font-size-std); /* Font sama besar */
+            font-weight: bold;
+            color: var(--danger); /* Merah */
+            background-color: #fff5f5;
+            border: 1px solid #ffebeb;
+            border-radius: 0.25rem;
+        }
 
         /* Output Tables */
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
@@ -94,9 +138,8 @@
         
         .text-green { color: var(--success); }
         .text-red { color: var(--danger); }
-        .text-small { font-size: 0.75rem; color: var(--gray); margin-top: 2px; }
-
-        /* Info Box Blue */
+        
+        /* Info Box */
         .info-box {
             background-color: #f0f2f6;
             border-left: 4px solid var(--primary);
@@ -105,17 +148,15 @@
             margin-bottom: 1rem;
         }
 
-        .highlight-input {
-            background-color: #fcfcfc;
-        }
+        .highlight-input { background-color: #fcfcfc; }
         
-        /* Helper for Fraction */
         .fraction-hint {
             text-align: center;
             font-size: 0.7rem;
             color: var(--primary);
             margin-top: 2px;
             font-style: italic;
+            height: 15px; /* prevent layout shift */
         }
     </style>
 </head>
@@ -133,22 +174,24 @@
             </div>
             <div class="col">
                 <label>Tipe Risiko</label>
-                <select id="riskType" onchange="calculate()">
+                <select id="riskType" onchange="toggleRiskInput()">
                     <option value="Persen">Persen (%)</option>
                     <option value="Fixed">Fixed (Rp)</option>
                 </select>
             </div>
         </div>
+        
         <div class="row">
             <div class="col">
-                <label id="riskLabel">Risiko (%)</label>
-                <input type="number" id="riskVal" value="1.0" step="0.1" onchange="calculate()" oninput="calculate()">
+                <label id="inputLabel">Risiko (%)</label>
+                <input type="text" id="riskInput" value="1.0" onkeyup="handleRiskInput(this)" onchange="calculate()">
             </div>
             <div class="col">
-                <label>Max Loss (Rp)</label>
-                <div id="previewRisk" style="padding:0.5rem; text-align:center; font-weight:bold; font-size:0.9rem; color:var(--danger);">Rp 1.000.000</div>
+                <label id="previewLabel">Estimasi (Rp)</label>
+                <div id="riskPreview" class="risk-preview">Rp 1.000.000</div>
             </div>
         </div>
+
         <div class="row">
             <div class="col">
                 <label>Fee Beli (%)</label>
@@ -169,23 +212,32 @@
                 <input type="text" id="ticker" placeholder="Cth: BBRI" style="text-transform: uppercase;">
             </div>
         </div>
+        
         <div class="row">
             <div class="col">
                 <label>Harga Entri</label>
-                <input type="number" id="entry" class="highlight-input" placeholder="0" onchange="snapToFraction(this)" oninput="calculate()">
+                <div class="input-group">
+                    <button class="btn-minus" onclick="adjustPrice('entry', -1)">−</button>
+                    <input type="number" id="entry" class="highlight-input" placeholder="0" onchange="calculate()">
+                    <button class="btn-plus" onclick="adjustPrice('entry', 1)">+</button>
+                </div>
                 <div id="entryFraction" class="fraction-hint"></div>
             </div>
             <div class="col">
                 <label>Stop Loss (SL)</label>
-                <input type="number" id="sl" class="highlight-input" placeholder="0" onchange="snapToFraction(this)" oninput="calculate()">
+                <div class="input-group">
+                    <button class="btn-minus" onclick="adjustPrice('sl', -1)">−</button>
+                    <input type="number" id="sl" class="highlight-input" placeholder="0" onchange="calculate()">
+                    <button class="btn-plus" onclick="adjustPrice('sl', 1)">+</button>
+                </div>
                 <div id="slFraction" class="fraction-hint"></div>
             </div>
         </div>
+
         <div class="row" style="margin-top:10px; border-top:1px dashed #e0e0e0; padding-top:10px;">
             <div class="col">
                 <label>Rata-rata Transaksi Harian (Rp)</label>
                 <input type="text" id="avgValue" placeholder="Opsional (Isi Manual)" onkeyup="formatRupiahInput(this)" onchange="calculate()">
-                <div class="text-small" style="text-align:center;">*Isi manual dari Data Feed / Running Trade</div>
             </div>
         </div>
     </div>
@@ -222,11 +274,9 @@
 </div>
 
 <script>
-    // --- FORMATTER FUNCTIONS ---
-    const formatIDR = (num) => {
-        return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(num);
-    }
-
+    // --- UTILS ---
+    const formatIDR = (num) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(num);
+    
     const formatLargeIDR = (num) => {
         if (num >= 1e12) return "Rp " + (num / 1e12).toFixed(2) + " T";
         if (num >= 1e9) return "Rp " + (num / 1e9).toFixed(2) + " M";
@@ -245,7 +295,7 @@
         calculate();
     }
 
-    // --- IHSG TICK LOGIC ---
+    // --- IHSG FRACTION LOGIC ---
     function getTickSize(price) {
         if (price < 200) return 1;
         if (price < 500) return 2;
@@ -254,56 +304,139 @@
         return 25;
     }
 
-    function roundToFraction(price) {
-        if (price <= 0) return 0;
-        let tick = getTickSize(price);
-        return Math.round(price / tick) * tick;
+    function adjustPrice(id, direction) {
+        let input = document.getElementById(id);
+        let currentVal = parseInt(input.value) || 0;
+        let tick = 1;
+
+        if (direction === 1) { // Up
+            tick = getTickSize(currentVal);
+            input.value = currentVal + tick;
+        } else { // Down
+            if (currentVal <= 0) return;
+            // Check tick of value BELOW current to snap correctly
+            let target = currentVal - 1; 
+            tick = getTickSize(target); 
+            // Fix edge case logic for boundaries (e.g. 200 -> 199 is tick 1, 202 -> 200 is tick 2)
+            // Simplified: Use current value logic, but handle boundaries manually
+            if (currentVal <= 200 && currentVal > 0) tick = 1;
+            else if (currentVal <= 500) tick = (currentVal % 2 !== 0) ? 1 : 2; 
+            else if (currentVal <= 2000) tick = (currentVal % 5 !== 0) ? (currentVal % 5) : 5;
+            else if (currentVal <= 5000) tick = (currentVal % 10 !== 0) ? (currentVal % 10) : 10;
+            else tick = (currentVal % 25 !== 0) ? (currentVal % 25) : 25;
+
+            // Better approach for Down: check what the previous tick should have been
+            let testVal = currentVal;
+            if (testVal > 5000) tick = 25;
+            else if (testVal > 2000) tick = 10;
+            else if (testVal > 500) tick = 5;
+            else if (testVal > 200) tick = 2;
+            else tick = 1;
+            
+            // Adjust if we are exactly at boundary to jump down to next lower fraction max
+            if (currentVal === 5000) tick = 10; 
+            if (currentVal === 2000) tick = 5;
+            if (currentVal === 500) tick = 2;
+            if (currentVal === 200) tick = 1;
+
+            input.value = Math.max(0, currentVal - tick);
+        }
+        
+        // Update Fraction Hint
+        let newTick = getTickSize(input.value);
+        document.getElementById(id+'Fraction').innerText = `Fraksi: ${newTick}`;
+        
+        calculate();
     }
 
     function snapToFraction(input) {
+        // Logic to snap manually typed numbers to nearest tick
         let val = parseInt(input.value) || 0;
-        if (val > 0) {
-            let snapped = roundToFraction(val);
-            input.value = snapped;
-            
-            // Show hint about tick size
-            let tick = getTickSize(snapped);
-            input.nextElementSibling.innerText = `Fraksi Harga: ${tick}`;
+        let tick = getTickSize(val);
+        let remainder = val % tick;
+        if(remainder !== 0) {
+            input.value = val - remainder;
+        }
+        document.getElementById(input.id+'Fraction').innerText = `Fraksi: ${tick}`;
+        calculate();
+    }
+
+    // --- RISK UI SWAP LOGIC ---
+    function toggleRiskInput() {
+        let riskType = document.getElementById('riskType').value;
+        let modal = parseRupiah(document.getElementById('modal').value);
+        let inputField = document.getElementById('riskInput');
+        let currentVal = parseRupiah(inputField.value.toString().replace('.',',')); // Handle percent format
+
+        // We are converting FROM the old type TO the new type
+        if (riskType === 'Persen') {
+            // Switched TO Percent (Previously Rp)
+            // Value is currently in Rp, convert to %
+            let percent = 0;
+            if(modal > 0) percent = (currentVal / modal) * 100;
+            inputField.value = percent.toFixed(1); 
         } else {
-            input.nextElementSibling.innerText = "";
+            // Switched TO Fixed (Previously %)
+            // Value is currently in %, convert to Rp
+            let currentPct = parseFloat(inputField.value) || 0;
+            let rupiah = (currentPct / 100) * modal;
+            inputField.value = rupiah.toLocaleString('id-ID');
         }
         calculate();
     }
 
-    // --- CORE CALCULATION ---
+    function handleRiskInput(input) {
+        let riskType = document.getElementById('riskType').value;
+        if (riskType === 'Fixed') {
+            formatRupiahInput(input);
+        } else {
+            calculate(); // Just calculate for Percent
+        }
+    }
+
+    // --- MAIN CALCULATION ---
     function calculate() {
-        // 1. Get Settings
+        // 1. Get Data
         let modal = parseRupiah(document.getElementById('modal').value);
         let riskType = document.getElementById('riskType').value;
-        let riskVal = parseFloat(document.getElementById('riskVal').value) || 0;
-        let feeBuy = (parseFloat(document.getElementById('feeBuy').value) || 0) / 100;
-        let feeSell = (parseFloat(document.getElementById('feeSell').value) || 0) / 100;
-
-        // Update UI Labels
-        document.getElementById('riskLabel').innerText = riskType === 'Persen' ? 'Risiko (%)' : 'Risiko (Rp)';
+        let feeBuy = parseFloat(document.getElementById('feeBuy').value) / 100;
+        let feeSell = parseFloat(document.getElementById('feeSell').value) / 100;
         
-        // Calculate Max Risk Amount
+        // 2. Handle Risk Swap UI & Logic
+        let inputLabel = document.getElementById('inputLabel');
+        let previewLabel = document.getElementById('previewLabel');
+        let riskInputVal = document.getElementById('riskInput').value;
+        let previewEl = document.getElementById('riskPreview');
         let maxRiskRp = 0;
-        if (riskType === 'Persen') {
-            maxRiskRp = modal * (riskVal / 100);
-        } else {
-            maxRiskRp = riskVal;
-        }
-        document.getElementById('previewRisk').innerText = "Rp " + formatIDR(maxRiskRp);
 
-        // 2. Get Transaction Inputs
+        if (riskType === 'Persen') {
+            // UI Setup
+            inputLabel.innerText = "Risiko (%)";
+            previewLabel.innerText = "Estimasi (Rp)";
+            
+            // Logic
+            let pct = parseFloat(riskInputVal) || 0;
+            maxRiskRp = modal * (pct / 100);
+            previewEl.innerText = "Rp " + formatIDR(maxRiskRp);
+        } else {
+            // UI Setup
+            inputLabel.innerText = "Risiko (Rp)";
+            previewLabel.innerText = "Estimasi (%)";
+            
+            // Logic
+            let rp = parseRupiah(riskInputVal);
+            maxRiskRp = rp;
+            let pct = 0;
+            if(modal > 0) pct = (rp / modal) * 100;
+            previewEl.innerText = pct.toFixed(2) + "%";
+        }
+
+        // 3. Trade Logic
         let ticker = document.getElementById('ticker').value.toUpperCase();
         let entry = parseInt(document.getElementById('entry').value) || 0;
         let sl = parseInt(document.getElementById('sl').value) || 0;
         let avgVal = parseRupiah(document.getElementById('avgValue').value);
 
-        // 3. Logic: Calculate Lots based on Max Risk
-        // Formula Net Loss: Shares * [Entry*(1+Fb) - SL*(1-Fs)]
         if (entry > 0 && sl > 0 && ticker !== "") {
             document.getElementById('resultSection').style.display = 'block';
 
@@ -313,16 +446,15 @@
 
             let lots = 0;
             if (riskPerShare > 0) {
-                // Shares = MaxRisk / RiskPerShare
                 let shares = maxRiskRp / riskPerShare;
-                lots = Math.floor(shares / 100); // Round down to Lot
+                lots = Math.floor(shares / 100);
             }
 
             let capitalReq = lots * 100 * entryCost;
             let realRiskRp = lots * 100 * riskPerShare;
             let riskPctTrade = ((entry - sl) / entry) * 100;
 
-            // 4. Render Results
+            // Render Results
             document.getElementById('resTicker').innerText = ticker;
             document.getElementById('resEntry').innerText = formatIDR(entry);
             document.getElementById('resLot').innerText = formatIDR(lots) + " lot";
@@ -337,26 +469,23 @@
                 document.getElementById('resSafeLimit').innerText = "(Isi Manual)";
             }
 
-            // 5. Render TP Table (Risk Reward)
+            // TP Table
             let tpHtml = "";
             for (let r = 1; r <= 5; r++) {
-                // TP Formula to get Net Profit of R * Risk
-                // GrossTP = (EntryCost + (R * RiskPerShare)) / (1 - FeeSell)
                 let targetProfitNet = r * riskPerShare; 
                 let tpGross = (entryCost + targetProfitNet) / (1 - feeSell);
                 
-                let tpPrice = roundToFraction(tpGross);
+                // Round TP to Tick
+                let tick = getTickSize(tpGross);
+                let tpPrice = Math.round(tpGross / tick) * tick;
                 
-                // Calculate Exact Profit at Rounded TP
                 let profitRp = (tpPrice * (1 - feeSell) * lots * 100) - (entryCost * lots * 100);
 
-                tpHtml += `
-                <tr>
+                tpHtml += `<tr>
                     <td style="color:var(--gray);">RR 1:${r}</td>
                     <td class="val">${formatIDR(tpPrice)}</td>
                     <td class="val text-green">+${formatIDR(Math.round(profitRp))}</td>
-                </tr>
-                `;
+                </tr>`;
             }
             document.getElementById('tpTable').innerHTML = tpHtml;
 
