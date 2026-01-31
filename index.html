@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Kalkulator Entri Saham</title>
+    <title>Kalkulator Entri</title>
     <style>
         :root {
             --primary: #0068c9;
@@ -28,6 +28,39 @@
 
         .container { width: 100%; max-width: 600px; }
         h2 { text-align: center; margin-bottom: 20px; font-size: 1.5rem; }
+
+        /* --- STYLE INPUT HIGH CONTRAST (WHITE) --- */
+        div[data-baseweb="input"], div[data-baseweb="select"] > div, div[data-baseweb="base-input"] {
+            background-color: transparent !important;
+            border: none !important;
+            border-bottom: 2px solid #ffffff !important;
+            border-radius: 0px !important;
+        }
+        
+        .stNumberInput input, .stTextInput input, div[data-baseweb="select"] div { 
+            text-align: center; 
+            font-weight: 700 !important;
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+            caret-color: #ffffff;
+            font-size: 16px;
+            padding-bottom: 5px;
+        }
+        
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.5) !important;
+            font-style: italic;
+            font-weight: normal;
+        }
+        
+        .input-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #ffffff !important;
+            margin-bottom: -10px;
+            display: block;
+            text-shadow: 0px 1px 2px rgba(0,0,0,0.5);
+        }
 
         /* Card */
         .card {
@@ -111,7 +144,7 @@
 <body>
 
 <div class="container">
-    <h2>📈 Kalkulator Saham Pro</h2>
+    <h2>📈 Kalkulator Entri</h2>
 
     <div class="card">
         <div class="card-title">⚙️ Modal & Risiko</div>
@@ -126,8 +159,8 @@
             </div>
         </div>
         <div class="row">
-            <div class="col"><label id="inputLabel">Risiko (%)</label><input type="text" id="riskInput" value="1.0" onkeyup="handleRiskInput(this); calculate()"></div>
-            <div class="col"><label id="previewLabel">Estimasi (Rp)</label><div id="riskPreview" class="risk-preview">Rp 1.000.000</div></div>
+            <div class="col"><label id="inputLabel">Risiko (%)</label><input type="text" id="riskInput" value="0.5" onkeyup="handleRiskInput(this); calculate()"></div>
+            <div class="col"><label id="previewLabel">Estimasi (Rp)</label><div id="riskPreview" class="risk-preview">Rp 500.000</div></div>
         </div>
         <div class="row">
             <div class="col"><label>Fee Beli (%)</label><input type="number" id="feeBuy" value="0.18" step="0.01" onchange="calculate()"></div>
@@ -191,7 +224,7 @@
                 <tr><td class="lbl">Resiko Trade (%)</td><td class="val text-red" id="resRiskPct">0%</td></tr>
                 <tr><td class="lbl">Resiko Trade (Rp)</td><td class="val text-red" id="resRiskRp">0</td></tr>
                 <tr><td class="lbl">Nilai Transaksi ini</td><td class="val" id="resCapital">0</td></tr>
-                <tr><td class="lbl">Pembanding: 1% Transaksi Harian</td><td class="val" id="resSafeLimit" style="color:var(--gray)">-</td></tr>
+                <tr><td class="lbl">Pembanding: 1% Transaksi Harian Emiten</td><td class="val" id="resSafeLimit" style="color:var(--gray)">-</td></tr>
             </table>
         </div>
 
@@ -232,12 +265,11 @@
         calculate();
     }
 
-    // --- MARKET DATA FETCHING ---
+    // --- MARKET DATA FETCHING (FIXED WITH ALLORIGINS) ---
     async function fetchMarketData() {
         let tickerInput = document.getElementById('ticker').value.toUpperCase().trim();
         if (!tickerInput) return alert("Masukkan kode emiten!");
 
-        // Paksa format .JK untuk Yahoo
         let cleanTicker = tickerInput.replace('.JK', '');
         let symbol = `${cleanTicker}.JK`;
 
@@ -250,20 +282,22 @@
         document.getElementById('techDataContainer').style.display = 'none';
 
         try {
-            const proxy = "https://corsproxy.io/?";
-            const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=2y`;
+            // Menggunakan api.allorigins.win dengan mode raw dan timestamp agar tidak cache
+            const proxy = "https://api.allorigins.win/raw?url=";
+            const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=2y`;
+            const fullUrl = proxy + encodeURIComponent(targetUrl) + "&t=" + Date.now();
             
-            const response = await fetch(proxy + encodeURIComponent(url));
-            if (!response.ok) throw new Error("Gagal terhubung ke server data.");
+            const response = await fetch(fullUrl);
+            
+            if (!response.ok) throw new Error("Koneksi gagal. Coba lagi.");
             
             const json = await response.json();
             
-            // Validasi Error dari Yahoo
             if (json.chart && json.chart.error) {
-                throw new Error(`Kode saham '${cleanTicker}' tidak ditemukan di Database.`);
+                throw new Error(`Kode saham '${cleanTicker}' tidak ditemukan.`);
             }
             if (!json.chart || !json.chart.result || json.chart.result.length === 0) {
-                throw new Error("Data saham kosong atau tidak tersedia.");
+                throw new Error("Data saham kosong/tidak tersedia.");
             }
             
             const result = json.chart.result[0];
@@ -272,7 +306,6 @@
             const volumes = quotes.volume;
             const lastPrice = result.meta.regularMarketPrice;
             
-            // Clean null values
             let cleanCloses = [], cleanVols = [];
             for(let i=0; i<closes.length; i++) {
                 if(closes[i] !== null && volumes[i] !== null) {
@@ -299,9 +332,7 @@
                 return ema;
             };
 
-            // Calculate Avg Daily Trans (Last 20 days)
-            let sumTrans = 0;
-            let count = 0;
+            let sumTrans = 0, count = 0;
             for(let i = cleanCloses.length - 20; i < cleanCloses.length; i++) {
                 if(i >= 0) {
                     sumTrans += (cleanCloses[i] * cleanVols[i]);
@@ -310,7 +341,6 @@
             }
             let avgDailyVal = count > 0 ? sumTrans / count : 0;
 
-            // Render Tech List
             let techHtml = "";
             techHtml += renderTechRow("Last Price", formatIDR(lastPrice), "");
             techHtml += renderTechRow("Transaksi Harian (Avg 20)", formatLargeIDR(avgDailyVal), "");
@@ -331,14 +361,12 @@
             document.getElementById('techList').innerHTML = techHtml;
             document.getElementById('techDataContainer').style.display = 'block';
             
-            // Update Calculation with new safe limit data
-            calculate();
-            
+            calculate(); // Update safe limit display
             status.innerText = `Update: ${new Date().toLocaleTimeString()}`;
 
         } catch (e) {
             console.error(e);
-            alert("⚠️ " + e.message + "\n\nPastikan koneksi internet stabil atau coba proxy lain.");
+            alert("⚠️ " + e.message);
         } finally {
             btn.innerHTML = "📡 Ambil Data";
             btn.classList.remove('btn-loading');
@@ -391,7 +419,6 @@
             tick = getTickSize(val);
             input.value = val + tick;
         } else {
-            // Smart decrement logic
             if (val <= 200) tick = 1;
             else if (val <= 500) tick = (val % 2 !== 0) ? 1 : 2;
             else if (val <= 2000) tick = (val % 5 !== 0) ? (val % 5) : 5;
@@ -424,7 +451,6 @@
         let feeBuy = (parseFloat(document.getElementById('feeBuy').value)||0) / 100;
         let feeSell = (parseFloat(document.getElementById('feeSell').value)||0) / 100;
         
-        // Setup Risk Labels
         let inputLabel = document.getElementById('inputLabel');
         let previewLabel = document.getElementById('previewLabel');
         let riskEl = document.getElementById('riskPreview');
@@ -445,7 +471,6 @@
             riskEl.innerText = pct.toFixed(2) + "%";
         }
 
-        // Logic
         let ticker = document.getElementById('ticker').value.toUpperCase();
         let entry = parseInt(document.getElementById('entry').value) || 0;
         let sl = parseInt(document.getElementById('sl').value) || 0;
@@ -473,14 +498,12 @@
             document.getElementById('resRiskRp').innerText = "-" + formatIDR(Math.round(realRisk));
             document.getElementById('resCapital').innerText = formatLargeIDR(capitalReq);
             
-            // Safe Limit Logic
             if(autoVal > 0) {
                 document.getElementById('resSafeLimit').innerText = formatLargeIDR(autoVal * 0.01);
             } else {
                 document.getElementById('resSafeLimit').innerText = "(Klik Ambil Data)";
             }
 
-            // TP Table
             let html = "";
             for(let r=1; r<=5; r++) {
                 let netTarget = r * riskPerShare;
@@ -496,6 +519,9 @@
             document.getElementById('resultSection').style.display = 'none';
         }
     }
+    
+    // Initial Calc
+    calculate();
 </script>
 
 </body>
