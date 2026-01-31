@@ -5,24 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kalkulator Lot</title>
     <style>
-        /* Ukuran font seragam 14px untuk seluruh elemen */
         body { font-family: sans-serif; background-color: #121212; color: #e0e0e0; padding: 20px; font-size: 14px; line-height: 1.5; }
-        .container { max-width: 450px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .container { max-width: 480px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         
-        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; background: #252525; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; background: #252525; }
         th { background: #333; color: #4caf50; padding: 10px; text-align: left; border: 1px solid #444; }
         td { padding: 8px 10px; border: 1px solid #444; }
         
-        input { width: 100%; padding: 8px; background: #2d2d2d; color: white; border: 1px solid #444; border-radius: 4px; box-sizing: border-box; font-size: 14px; font-family: sans-serif; }
-        input:focus { border-color: #4caf50; outline: none; }
+        input { width: 100%; padding: 8px; background: #2d2d2d; color: white; border: 1px solid #444; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
         
-        button { width: 100%; padding: 12px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.2s; }
-        button:hover { background: #45a049; }
+        button { width: 100%; padding: 12px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; margin-bottom: 20px;}
         
-        .result-box { background: #252525; padding: 15px; margin-top: 15px; border-top: 2px solid #4caf50; border-radius: 0 0 4px 4px; }
-        .sharia-status { color: #4caf50; font-weight: bold; }
-        .tp-section { margin-top: 10px; padding-top: 10px; border-top: 1px solid #444; color: #bbb; }
-        .highlight { color: #4caf50; font-weight: bold; }
+        .result-box { background: #252525; padding: 15px; border-top: 2px solid #4caf50; border-radius: 4px; }
+        .status-syariah { font-weight: bold; }
+        .is-syariah { color: #4caf50; }
+        .non-syariah { color: #ff5252; }
+        
+        .tp-table { width: 100%; margin-top: 15px; font-size: 13px; }
+        .tp-table td { border: none; border-bottom: 1px solid #333; padding: 5px 0; }
+        .highlight { color: #4caf50; font-weight: bold; font-size: 1.1em; }
     </style>
 </head>
 <body>
@@ -32,57 +33,66 @@
     
     <table>
         <thead>
-            <tr>
-                <th colspan="2">RENCANA TRANSAKSI</th>
-            </tr>
+            <tr><th colspan="2">PENGATURAN MODAL & RISIKO</th></tr>
         </thead>
         <tbody>
             <tr>
-                <td width="40%">Modal (Rp)</td>
+                <td width="50%">Modal (Rp)</td>
                 <td><input type="text" id="modalDisplay" value="50.000.000" oninput="formatModal(this)"></td>
             </tr>
             <tr>
-                <td>Risiko (%)</td>
+                <td>Risiko Per Trade (%)</td>
                 <td><input type="number" id="riskPct" step="0.01" value="0.50"></td>
             </tr>
+        </tbody>
+    </table>
+
+    <table>
+        <thead>
+            <tr><th colspan="2">RENCANA ENTRI</th></tr>
+        </thead>
+        <tbody>
             <tr>
-                <td>Ticker Saham</td>
-                <td><input type="text" id="ticker" placeholder="MISAL: ACES" oninput="checkTicker()"></td>
+                <td width="50%">Ticker Saham</td>
+                <td><input type="text" id="ticker" placeholder="CONTOH: ACES" oninput="checkTicker()"></td>
             </tr>
             <tr>
-                <td>Entry Price</td>
+                <td>Harga Entri</td>
                 <td><input type="number" id="entry" value="1000"></td>
             </tr>
             <tr>
-                <td>Stop Loss</td>
+                <td>Harga Stop Loss</td>
                 <td><input type="number" id="sl" value="950"></td>
             </tr>
         </tbody>
     </table>
 
-    <button onclick="calculate()">HITUNG RENCANA</button>
+    <button onclick="calculate()">HITUNG TRANSAKSI</button>
 
     <div id="results" class="result-box" style="display:none;">
-        <div style="margin-bottom: 8px;">
-            <span id="resTicker" style="font-weight: bold; text-transform: uppercase;">-</span>
-            <span id="resSharia" class="sharia-status"></span>
+        <div style="margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 10px;">
+            <span id="resTicker" style="font-weight: bold; text-transform: uppercase; font-size: 16px;">-</span>
+            <span id="resSharia" class="status-syariah"></span>
+            <div style="color: #bbb; font-size: 12px; margin-top: 4px;">
+                Entry: <span id="infoEntry"></span> | SL: <span id="infoSL"></span> (<span id="infoRiskPct" style="color: #ff5252;"></span>)
+            </div>
         </div>
         
-        <div>Lot Beli: <span id="resLot" class="highlight">0</span> Lot</div>
-        <div>Total Nilai: <span id="resValue">Rp 0</span></div>
-        <div>Risiko Uang: <span id="resRisk" style="color: #ff5252;">Rp 0</span></div>
-        
-        <div class="tp-section">
-            <strong>Target Profit (RR):</strong><br>
-            TP 1R: <span id="tp1"></span><br>
-            TP 2R: <span id="tp2"></span><br>
-            TP 3R: <span id="tp3"></span>
+        <div style="margin-bottom: 15px;">
+            Pesanan: <span id="resLot" class="highlight">0</span> Lot<br>
+            Total Nilai: <span id="resValue">Rp 0</span><br>
+            Risiko Uang: <span id="resRisk" style="color: #ff5252;">Rp 0</span>
         </div>
+        
+        <div style="font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px;">TARGET PROFIT (REWARD)</div>
+        <table class="tp-table">
+            <tbody id="tpBody">
+                </tbody>
+        </table>
     </div>
 </div>
 
 <script>
-// Data Saham Syariah (ISSI)
 const shariaStocks = ["AADI", "AALI", "ABMM", "ACES", "ACST", "ADCP", "ADES", "ADHI", "ADMG", "ADMR", "ADRO", "AGAR", "AGII", "AIMS", "AISA", "AKKU", "AKPI", "AKRA", "AKSI", "ALDO", "ALKA", "AMAN", "AMFG", "AMIN", "ANDI", "ANJT", "ANTM", "APII", "APLI", "APLN", "ARCI", "AREA", "ARGO", "ARII", "ARNA", "ARTA", "ASGR", "ASHA", "ASII", "ASLC", "ASLI", "ASPI", "ASRI", "ASSA", "ATAP", "ATIC", "ATLA", "AUTO", "AVIA", "AWAN", "AXIO", "AYAM", "AYLS", "BABY", "BAIK", "BANK", "BAPI", "BATA", "BATR", "BAUT", "BAYU", "BBRM", "BBSS", "BCIP", "BDKR", "BEEF", "BELI", "BELL", "BESS", "BEST", "BIKE", "BINO", "BIPP", "BIRD", "BISI", "BKDP", "BKSL", "BLES", "BLOG", "BLTA", "BLTZ", "BLUE", "BMHS", "BMSR", "BMTR", "BNBR", "BOAT", "BOBA", "BOGA", "BOLA", "BOLT", "BRAM", "BRIS", "BRMS", "BRNA", "BRPT", "BRRC", "BSBK", "BSDE", "BSML", "BSSR", "BTPS", "BUAH", "BUKK", "BULL", "BUMI", "BUVA", "BYAN", "CAKK", "CAMP", "CANI", "CARE", "CASS", "CBDK", "CBPE", "CBRE", "CCSI", "CEKA", "CGAS", "CHEK", "CHEM", "CINT", "CITA", "CITY", "CLEO", "CLPI", "CMNP", "CMPP", "CMRY", "CNKO", "CNMA", "COAL", "CPIN", "CPRO", "CRAB", "CRSN", "CSAP", "CSIS", "CSMI", "CSRA", "CTBN", "CTRA", "CYBR", "DAAZ", "DADA", "DATA", "DAYA", "DCII", "DEFI", "DEPO", "DEWA", "DEWI", "DGIK", "DGNS", "DGWG", "DILD", "DIVA", "DKFT", "DKHH", "DMAS", "DMMX", "DMND", "DOOH", "DOSS", "DRMA", "DSFI", "DSNG", "DSSA", "DUTI", "DVLA", "DWGL", "DYAN", "EAST", "ECII", "EDGE", "EKAD", "ELIT", "ELPI", "ELSA", "ELTY", "EMDE", "ENAK", "ENRG", "EPAC", "EPMT", "ERAA", "ERAL", "ESIP", "ESSA", "ESTA", "EXCL", "FAST", "FASW", "FILM", "FIRE", "FISH", "FITT", "FMII", "FOLK", "FOOD", "FORE", "FPNI", "FUTR", "FWCT", "GDST", "GDYR", "GEMA", "GEMS", "GGRP", "GHON", "GIAA", "GJTL", "GLVA", "GMTD", "GOLD", "GOLF", "GOOD", "GPRA", "GPSO", "GRIA", "GRPH", "GTBO", "GTRA", "GTSI", "GULA", "GUNA", "GWSA", "GZCO", "HADE", "HAIS", "HALO", "HATM", "HDIT", "HEAL", "HERO", "HEXA", "HGII", "HITS", "HOKI", "HOMI", "HOPE", "HRME", "HRUM", "HUMI", "HYGN", "IATA", "IBST", "ICBP", "ICON", "IDPR", "IFII", "IFSH", "IGAR", "IIKP", "IKAI", "IKAN", "IKBI", "IKPM", "IMPC", "INCI", "INCO", "INDF", "INDR", "INDS", "INDX", "INDY", "INET", "INKP", "INPP", "INTD", "INTP", "IOTF", "IPCC", "IPCM", "IPOL", "IPTV", "IRRA", "IRSX", "ISAT", "ISSP", "ITMA", "ITMG", "JAST", "JATI", "JAWA", "JAYA", "JECC", "JGLE", "JIHD", "JKON", "JMAS", "JPFA", "JRPT", "JSMR", "JSPT", "JTPE", "KAQI", "KARW", "KBAG", "KBLI", "KBLM", "KDSI", "KDTN", "KEEN", "KEJU", "KETR", "KIAS", "KICI", "KIJA", "KINO", "KIOS", "KJEN", "KKES", "KKGI", "KLAS", "KLBF", "KMDS", "KOBX", "KOCI", "KOIN", "KOKA", "KONI", "KOPI", "KOTA", "KPIG", "KREN", "KRYA", "KSIX", "KUAS", "LABA", "LABS", "LAJU", "LAND", "LCKM", "LION", "LIVE", "LMPI", "LMSH", "LPCK", "LPIN", "LPKR", "LPLI", "LPPF", "LRNA", "LSIP", "LTLS", "LUCK", "MAHA", "MAIN", "MAPA", "MAPB", "MAPI", "MARK", "MAXI", "MBAP", "MBMA", "MBTO", "MCAS", "MCOL", "MDIY", "MDKA", "MDKI", "MDLA", "MEDC", "MEDS", "MERI", "MERK", "META", "MFMI", "MGNA", "MHKI", "MICE", "MIDI", "MIKA", "MINA", "MINE", "MIRA", "MITI", "MKAP", "MKPI", "MKTR", "MLIA", "MLPL", "MLPT", "MMIX", "MMLP", "MNCN", "MORA", "MPIX", "MPMX", "MPOW", "MPPA", "MPRO", "MRAT", "MSIN", "MSJA", "MSKY", "MSTI", "MTDL", "MTEL", "MTFN", "MTLA", "MTMH", "MTPS", "MTSM", "MUTU", "MYOH", "MYOR", "NAIK", "NASA", "NASI", "NCKL", "NELY", "NEST", "NETV", "NFCX", "NICE", "NICL", "NIKL", "NPGF", "NRCA", "NTBK", "NZIA", "OASA", "OBAT", "OBMD", "OILS", "OKAS", "OMED", "OMRE", "PADA", "PALM", "PAMG", "PANI", "PANR", "PART", "PBID", "PBSA", "PCAR", "PDES", "PDPP", "PEHA", "PEVE", "PGAS", "PGEO", "PGLI", "PGUN", "PICO", "PIPA", "PJAA", "PJHB", "PKPK", "PLIN", "PMJS", "PMUI", "PNBS", "PNGO", "PNSE", "POLI", "POLU", "PORT", "POWR", "PPRE", "PPRI", "PPRO", "PRAY", "PRDA", "PRIM", "PSAB", "PSAT", "PSDN", "PSGO", "PSKT", "PSSI", "PTBA", "PTIS", "PTMP", "PTMR", "PTPP", "PTPS", "PTPW", "PTSN", "PTSP", "PURA", "PURI", "PWON", "PZZA", "RAAM", "RAFI", "RAJA", "RALS", "RANC", "RATU", "RBMS", "RDTX", "RGAS", "RIGS", "RISE", "RMKE", "RMKO", "ROCK", "RODA", "RONY", "ROTI", "RSGK", "RUIS", "SAFE", "SAGE", "SAME", "SAMF", "SAPX", "SATU", "SBMA", "SCCO", "SCNP", "SCPI", "SEMA", "SGER", "SGRO", "SHID", "SHIP", "SICO", "SIDO", "SILO", "SIMP", "SIPD", "SKBM", "SKLT", "SKRN", "SLIS", "SMAR", "SMBR", "SMCB", "SMDM", "SMDR", "SMGA", "SMGR", "SMIL", "SMKL", "SMLE", "SMMT", "SMRA", "SMSM", "SNLK", "SOCI", "SOHO", "SOLA", "SONA", "SOSS", "SOTS", "SPMA", "SPTO", "SRTG", "SSIA", "SSTM", "STAA", "STTP", "SULI", "SUNI", "SUPR", "SURI", "SWID", "TALF", "TAMA", "TAMU", "TAPG", "TARA", "TAXI", "TBMS", "TCID", "TCPI", "TEBE", "TFAS", "TFCO", "TGKA", "TGUK", "TINS", "TIRA", "TIRT", "TKIM", "TLDN", "TLKM", "TMAS", "TMPO", "TNCA", "TOBA", "TOOL", "TOSK", "TOTL", "TOTO", "TPIA", "TPMA", "TRIS", "TRJA", "TRON", "TRST", "TRUE", "TRUK", "TSPC", "TYRE", "UANG", "UCID", "UFOE", "ULTJ", "UNIC", "UNIQ", "UNTR", "UNVR", "UVCR", "VAST", "VERN", "VICI", "VISI", "VKTR", "VOKS", "WAPO", "WEGE", "WEHA", "WINR", "WINS", "WIRG", "WMUU", "WOOD", "WOWS", "WTON", "YELO", "YPAS", "YUPI", "ZATA", "ZONE", "ZYRX"];
 
 function formatModal(input) {
@@ -96,10 +106,14 @@ function checkTicker() {
     const tickerSpan = document.getElementById('resTicker');
     
     tickerSpan.innerText = ticker || "-";
+    if (!ticker) { shariaSpan.innerText = ""; return; }
+    
     if (shariaStocks.includes(ticker)) {
         shariaSpan.innerText = " (✓ Syariah/ISSI)";
+        shariaSpan.className = "status-syariah is-syariah";
     } else {
-        shariaSpan.innerText = "";
+        shariaSpan.innerText = " (✗ Non-ISSI/Non-Syariah)";
+        shariaSpan.className = "status-syariah non-syariah";
     }
 }
 
@@ -110,25 +124,38 @@ function calculate() {
     const entry = parseFloat(document.getElementById('entry').value);
     const sl = parseFloat(document.getElementById('sl').value);
 
-    if (!modal || !entry || !sl) { alert("Lengkapi data terlebih dahulu"); return; }
+    if (!modal || !entry || !sl) { alert("Data belum lengkap"); return; }
     
     const riskAmount = modal * riskPct;
     const riskPerShare = entry - sl;
+    const slPct = ((riskPerShare / entry) * 100).toFixed(2);
 
-    if (riskPerShare <= 0) { alert("Stop Loss harus lebih rendah dari Entry"); return; }
+    if (riskPerShare <= 0) { alert("Stop Loss harus di bawah Entry"); return; }
 
     const totalLot = Math.floor((riskAmount / riskPerShare) / 100);
     const totalValue = totalLot * 100 * entry;
 
-    // Tampilkan hasil
+    // Tabel Info Emiten Bawah
+    document.getElementById('infoEntry').innerText = entry.toLocaleString('id-ID');
+    document.getElementById('infoSL').innerText = sl.toLocaleString('id-ID');
+    document.getElementById('infoRiskPct').innerText = slPct + "%";
+
+    // Hasil Utama
     document.getElementById('resLot').innerText = totalLot.toLocaleString('id-ID');
     document.getElementById('resValue').innerText = "Rp " + totalValue.toLocaleString('id-ID');
     document.getElementById('resRisk').innerText = "Rp " + riskAmount.toLocaleString('id-ID');
     
-    // Hitung TP berdasarkan RR
-    document.getElementById('tp1').innerText = (entry + (riskPerShare * 1)).toLocaleString('id-ID');
-    document.getElementById('tp2').innerText = (entry + (riskPerShare * 2)).toLocaleString('id-ID');
-    document.getElementById('tp3').innerText = (entry + (riskPerShare * 3)).toLocaleString('id-ID');
+    // Generasi TP 1R - 6R
+    let tpHtml = "";
+    for(let r=1; r<=6; r++) {
+        const tpPrice = entry + (riskPerShare * r);
+        const tpPct = (((tpPrice - entry) / entry) * 100).toFixed(2);
+        tpHtml += `<tr>
+            <td>TP ${r}R (Reward ${r}:1)</td>
+            <td style="text-align: right;"><strong>${tpPrice.toLocaleString('id-ID')}</strong> <span style="color: #4caf50;">(+${tpPct}%)</span></td>
+        </tr>`;
+    }
+    document.getElementById('tpBody').innerHTML = tpHtml;
 
     document.getElementById('results').style.display = 'block';
 }
