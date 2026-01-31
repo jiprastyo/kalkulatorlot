@@ -1,40 +1,370 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <title>Kalkulator Saham Syariah</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.57.0/build/stlite.css" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script src="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.57.0/build/stlite.js"></script>
-    <script>
-      stlite.mount(
-        {
-          requirements: ["pandas", "numpy"], // Tambahkan library yang kamu gunakan
-          entrypoint: "app.py",
-          files: {
-            "app.py": `
-import streamlit as st
-import pandas as pd
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kalkulator Saham & Risk Management</title>
+    <style>
+        :root {
+            --primary: #0068c9;
+            --bg: #ffffff;
+            --text: #262730;
+            --border: #e6e6e6;
+            --success: #09ab3b;
+            --danger: #ff2b2b;
+            --gray: #808495;
+        }
 
-# Tempelkan seluruh kode Python kalkulator syariah kamu di bawah ini
-st.title("Kalkulator Risk & Syariah")
-st.write("Aplikasi berjalan via WebAssembly di GitHub Pages")
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
 
-# Contoh logika kalkulator kamu:
-price = st.number_input("Harga Beli", value=1000)
-risk_pct = st.slider("Risk (%)", 1, 10, 5)
-stop_loss = price * (1 - risk_pct/100)
+        .container {
+            width: 100%;
+            max-width: 600px;
+        }
 
-st.success(f"Stop Loss: {stop_loss}")
-            `,
-          },
-        },
-        document.getElementById("root")
-      );
-    </script>
-  </body>
+        h2 { margin-top: 0; font-size: 1.5rem; text-align: center; margin-bottom: 20px; }
+
+        /* Card Style */
+        .card {
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .card-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+
+        /* Input Groups */
+        .row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .col { flex: 1; }
+
+        label {
+            display: block;
+            font-size: 0.8rem;
+            margin-bottom: 4px;
+            color: var(--gray);
+        }
+
+        /* Streamlit-like Inputs */
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 0.25rem;
+            font-size: 1rem;
+            outline: none;
+            box-sizing: border-box;
+            color: var(--text);
+            font-weight: 500;
+            text-align: center;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px var(--primary);
+        }
+
+        /* Hide Number Spinners */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+
+        /* Output Tables */
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        td { padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
+        tr:last-child td { border-bottom: none; }
+        
+        .lbl { color: var(--gray); font-weight: 500; width: 50%; }
+        .val { text-align: right; font-weight: 600; font-family: monospace; font-size: 0.9rem; }
+        
+        .text-green { color: var(--success); }
+        .text-red { color: var(--danger); }
+        .text-small { font-size: 0.75rem; color: var(--gray); margin-top: 2px; }
+
+        /* Info Box Blue */
+        .info-box {
+            background-color: #f0f2f6;
+            border-left: 4px solid var(--primary);
+            padding: 1rem;
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .highlight-input {
+            background-color: #fcfcfc;
+        }
+        
+        /* Helper for Fraction */
+        .fraction-hint {
+            text-align: center;
+            font-size: 0.7rem;
+            color: var(--primary);
+            margin-top: 2px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📈 Kalkulator Lot & Risk</h2>
+
+    <div class="card">
+        <div class="card-title">⚙️ Pengaturan Modal & Risiko</div>
+        <div class="row">
+            <div class="col">
+                <label>Modal (Rp)</label>
+                <input type="text" id="modal" value="100.000.000" onkeyup="formatRupiahInput(this)" onchange="calculate()">
+            </div>
+            <div class="col">
+                <label>Tipe Risiko</label>
+                <select id="riskType" onchange="calculate()">
+                    <option value="Persen">Persen (%)</option>
+                    <option value="Fixed">Fixed (Rp)</option>
+                </select>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <label id="riskLabel">Risiko (%)</label>
+                <input type="number" id="riskVal" value="1.0" step="0.1" onchange="calculate()" oninput="calculate()">
+            </div>
+            <div class="col">
+                <label>Max Loss (Rp)</label>
+                <div id="previewRisk" style="padding:0.5rem; text-align:center; font-weight:bold; font-size:0.9rem; color:var(--danger);">Rp 1.000.000</div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <label>Fee Beli (%)</label>
+                <input type="number" id="feeBuy" value="0.18" step="0.01" onchange="calculate()">
+            </div>
+            <div class="col">
+                <label>Fee Jual (%)</label>
+                <input type="number" id="feeSell" value="0.28" step="0.01" onchange="calculate()">
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">📝 Input Transaksi</div>
+        <div class="row">
+            <div class="col">
+                <label>Kode Emiten</label>
+                <input type="text" id="ticker" placeholder="Cth: BBRI" style="text-transform: uppercase;">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <label>Harga Entri</label>
+                <input type="number" id="entry" class="highlight-input" placeholder="0" onchange="snapToFraction(this)" oninput="calculate()">
+                <div id="entryFraction" class="fraction-hint"></div>
+            </div>
+            <div class="col">
+                <label>Stop Loss (SL)</label>
+                <input type="number" id="sl" class="highlight-input" placeholder="0" onchange="snapToFraction(this)" oninput="calculate()">
+                <div id="slFraction" class="fraction-hint"></div>
+            </div>
+        </div>
+        <div class="row" style="margin-top:10px; border-top:1px dashed #e0e0e0; padding-top:10px;">
+            <div class="col">
+                <label>Rata-rata Transaksi Harian (Rp)</label>
+                <input type="text" id="avgValue" placeholder="Opsional (Isi Manual)" onkeyup="formatRupiahInput(this)" onchange="calculate()">
+                <div class="text-small" style="text-align:center;">*Isi manual dari Data Feed / Running Trade</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="resultSection" style="display:none;">
+        
+        <div class="info-box">
+            <div class="card-title" style="border-bottom:1px solid #ccc; padding-bottom:5px; margin-bottom:10px;">Rencana Entri</div>
+            <table>
+                <tr><td class="lbl">Emiten</td><td class="val" id="resTicker">-</td></tr>
+                <tr><td class="lbl">Harga Entri</td><td class="val" id="resEntry">0</td></tr>
+                <tr><td class="lbl">Lot Beli</td><td class="val" id="resLot" style="font-size:1.2rem; color:var(--primary);">0 lot</td></tr>
+                <tr><td class="lbl">Harga Stop Loss</td><td class="val" id="resSL">0</td></tr>
+                <tr><td class="lbl">Resiko Trade (%)</td><td class="val text-red" id="resRiskPct">0%</td></tr>
+                <tr><td class="lbl">Resiko Trade (Rp)</td><td class="val text-red" id="resRiskRp">0</td></tr>
+                <tr><td class="lbl">Nilai Transaksi ini</td><td class="val" id="resCapital">0</td></tr>
+                <tr><td class="lbl">Pembanding: 1% Transaksi Harian</td><td class="val" id="resSafeLimit" style="color:var(--gray)">-</td></tr>
+            </table>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Rencana Take Profit (RR)</div>
+            <table>
+                <tr style="background:#f8f9fa;">
+                    <td style="font-weight:bold; color:#555;">Reward</td>
+                    <td style="text-align:right; font-weight:bold; color:#555;">Harga</td>
+                    <td style="text-align:right; font-weight:bold; color:#555;">Profit (Rp)</td>
+                </tr>
+                <tbody id="tpTable"></tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // --- FORMATTER FUNCTIONS ---
+    const formatIDR = (num) => {
+        return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(num);
+    }
+
+    const formatLargeIDR = (num) => {
+        if (num >= 1e12) return "Rp " + (num / 1e12).toFixed(2) + " T";
+        if (num >= 1e9) return "Rp " + (num / 1e9).toFixed(2) + " M";
+        if (num >= 1e6) return "Rp " + (num / 1e6).toFixed(2) + " Jt";
+        return "Rp " + formatIDR(num);
+    }
+
+    const parseRupiah = (str) => {
+        if (!str) return 0;
+        return parseInt(str.toString().replace(/[^0-9]/g, '')) || 0;
+    }
+
+    function formatRupiahInput(input) {
+        let val = parseRupiah(input.value);
+        input.value = val > 0 ? val.toLocaleString('id-ID') : "";
+        calculate();
+    }
+
+    // --- IHSG TICK LOGIC ---
+    function getTickSize(price) {
+        if (price < 200) return 1;
+        if (price < 500) return 2;
+        if (price < 2000) return 5;
+        if (price < 5000) return 10;
+        return 25;
+    }
+
+    function roundToFraction(price) {
+        if (price <= 0) return 0;
+        let tick = getTickSize(price);
+        return Math.round(price / tick) * tick;
+    }
+
+    function snapToFraction(input) {
+        let val = parseInt(input.value) || 0;
+        if (val > 0) {
+            let snapped = roundToFraction(val);
+            input.value = snapped;
+            
+            // Show hint about tick size
+            let tick = getTickSize(snapped);
+            input.nextElementSibling.innerText = `Fraksi Harga: ${tick}`;
+        } else {
+            input.nextElementSibling.innerText = "";
+        }
+        calculate();
+    }
+
+    // --- CORE CALCULATION ---
+    function calculate() {
+        // 1. Get Settings
+        let modal = parseRupiah(document.getElementById('modal').value);
+        let riskType = document.getElementById('riskType').value;
+        let riskVal = parseFloat(document.getElementById('riskVal').value) || 0;
+        let feeBuy = (parseFloat(document.getElementById('feeBuy').value) || 0) / 100;
+        let feeSell = (parseFloat(document.getElementById('feeSell').value) || 0) / 100;
+
+        // Update UI Labels
+        document.getElementById('riskLabel').innerText = riskType === 'Persen' ? 'Risiko (%)' : 'Risiko (Rp)';
+        
+        // Calculate Max Risk Amount
+        let maxRiskRp = 0;
+        if (riskType === 'Persen') {
+            maxRiskRp = modal * (riskVal / 100);
+        } else {
+            maxRiskRp = riskVal;
+        }
+        document.getElementById('previewRisk').innerText = "Rp " + formatIDR(maxRiskRp);
+
+        // 2. Get Transaction Inputs
+        let ticker = document.getElementById('ticker').value.toUpperCase();
+        let entry = parseInt(document.getElementById('entry').value) || 0;
+        let sl = parseInt(document.getElementById('sl').value) || 0;
+        let avgVal = parseRupiah(document.getElementById('avgValue').value);
+
+        // 3. Logic: Calculate Lots based on Max Risk
+        // Formula Net Loss: Shares * [Entry*(1+Fb) - SL*(1-Fs)]
+        if (entry > 0 && sl > 0 && ticker !== "") {
+            document.getElementById('resultSection').style.display = 'block';
+
+            let entryCost = entry * (1 + feeBuy);
+            let slNet = sl * (1 - feeSell);
+            let riskPerShare = entryCost - slNet;
+
+            let lots = 0;
+            if (riskPerShare > 0) {
+                // Shares = MaxRisk / RiskPerShare
+                let shares = maxRiskRp / riskPerShare;
+                lots = Math.floor(shares / 100); // Round down to Lot
+            }
+
+            let capitalReq = lots * 100 * entryCost;
+            let realRiskRp = lots * 100 * riskPerShare;
+            let riskPctTrade = ((entry - sl) / entry) * 100;
+
+            // 4. Render Results
+            document.getElementById('resTicker').innerText = ticker;
+            document.getElementById('resEntry').innerText = formatIDR(entry);
+            document.getElementById('resLot').innerText = formatIDR(lots) + " lot";
+            document.getElementById('resSL').innerText = formatIDR(sl);
+            document.getElementById('resRiskPct').innerText = "-" + riskPctTrade.toFixed(2) + "%";
+            document.getElementById('resRiskRp').innerText = "-" + formatIDR(Math.round(realRiskRp));
+            document.getElementById('resCapital').innerText = formatLargeIDR(capitalReq);
+
+            if (avgVal > 0) {
+                document.getElementById('resSafeLimit').innerText = formatLargeIDR(avgVal * 0.01);
+            } else {
+                document.getElementById('resSafeLimit').innerText = "(Isi Manual)";
+            }
+
+            // 5. Render TP Table (Risk Reward)
+            let tpHtml = "";
+            for (let r = 1; r <= 5; r++) {
+                // TP Formula to get Net Profit of R * Risk
+                // GrossTP = (EntryCost + (R * RiskPerShare)) / (1 - FeeSell)
+                let targetProfitNet = r * riskPerShare; 
+                let tpGross = (entryCost + targetProfitNet) / (1 - feeSell);
+                
+                let tpPrice = roundToFraction(tpGross);
+                
+                // Calculate Exact Profit at Rounded TP
+                let profitRp = (tpPrice * (1 - feeSell) * lots * 100) - (entryCost * lots * 100);
+
+                tpHtml += `
+                <tr>
+                    <td style="color:var(--gray);">RR 1:${r}</td>
+                    <td class="val">${formatIDR(tpPrice)}</td>
+                    <td class="val text-green">+${formatIDR(Math.round(profitRp))}</td>
+                </tr>
+                `;
+            }
+            document.getElementById('tpTable').innerHTML = tpHtml;
+
+        } else {
+            document.getElementById('resultSection').style.display = 'none';
+        }
+    }
+</script>
+
+</body>
 </html>
