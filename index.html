@@ -7,7 +7,8 @@
     <title>Kalkulator Lot</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.57.0/build/stlite.css" />
     <style>
-      /* CSS untuk menyembunyikan spinner/panah standar browser di input angka */
+      /* CSS untuk menyembunyikan panah up/down di dalam kotak input */
+      /* Tombol +/- di samping kotak akan tetap ada untuk fraksi */
       input[type=number]::-webkit-inner-spin-button, 
       input[type=number]::-webkit-outer-spin-button { 
         -webkit-appearance: none; 
@@ -24,104 +25,83 @@
     <script>
       stlite.mount(
         {
-          requirements: ["pandas", "feedparser"], 
+          requirements: [], // Kosongkan requirements agar ringan & cepat
           entrypoint: "app.py",
           files: {
             "app.py": `
 import streamlit as st
-import pandas as pd
-import feedparser
 
-# Fungsi untuk menyimpan ke browser storage via stlite
+# --- Konfigurasi Halaman ---
+st.set_page_config(page_title="Kalkulator Lot", layout="centered")
+
+# --- Fungsi Simpan Setting ---
 def save_settings(equity, risk):
     st.session_state['saved_equity'] = equity
     st.session_state['saved_risk'] = risk
 
-# Inisialisasi data tersimpan (Default jika kosong)
+# --- Inisialisasi State (Memori Sementara) ---
 if 'saved_equity' not in st.session_state:
-    st.session_state['saved_equity'] = 10000000.0
+    st.session_state['saved_equity'] = 10000000.0 # Default 10 Juta
 if 'saved_risk' not in st.session_state:
-    st.session_state['saved_risk'] = 1.0
+    st.session_state['saved_risk'] = 1.0 # Default 1%
 
+# --- Judul ---
 st.title("Kalkulator Lot")
 
-# Layout Utama
-col1, col2 = st.columns(2)
-
-with col1:
-    # Field Modal dengan state terakhir
-    equity = st.number_input("Total Modal (IDR)", 
-                             value=float(st.session_state['saved_equity']), 
-                             step=100000.0, 
-                             format="%.0f")
+# --- Bagian 1: Pengaturan Modal & Risiko ---
+with st.container():
+    col1, col2 = st.columns(2)
     
-    # Input Kode Saham untuk Berita
-    ticker = st.text_input("Kode Saham (Contoh: MINA, CSIS, JMIA)", value="").upper()
-
-with col2:
-    # Field Risk dengan state terakhir
-    risk_pct = st.number_input("Risk per Trade (%)", 
-                               value=float(st.session_state['saved_risk']), 
-                               step=0.1, 
-                               format="%.1f")
+    with col1:
+        equity = st.number_input("Total Modal (IDR)", 
+                                 value=float(st.session_state['saved_equity']), 
+                                 step=100000.0, 
+                                 format="%.0f")
     
-    # Tombol Simpan Pengaturan
+    with col2:
+        risk_pct = st.number_input("Risk per Trade (%)", 
+                                   value=float(st.session_state['saved_risk']), 
+                                   step=0.1, 
+                                   format="%.1f")
+        
+    # Tombol Simpan
     if st.button("💾 Simpan Modal & Risiko"):
         save_settings(equity, risk_pct)
-        st.toast("Pengaturan tersimpan!")
+        st.toast("Pengaturan tersimpan untuk sesi ini!", icon="✅")
 
 st.divider()
 
-# Input Transaksi - Menghilangkan spinner browser via CSS di atas
-# Menggunakan step=1.0 agar tombol +/- Streamlit tetap ada untuk fraksi harga
+# --- Bagian 2: Input Transaksi (Entry & SL) ---
 col_a, col_b = st.columns(2)
 with col_a:
+    # step=1 membuat tombol +/- berfungsi untuk kenaikan 1 poin
     price = st.number_input("Harga Beli (Entry)", value=1000, step=1)
 with col_b:
     stop_loss_price = st.number_input("Harga Stop Loss", value=950, step=1)
 
-# Perhitungan Logika Lot
+# --- Bagian 3: Logika Perhitungan ---
 risk_amount = equity * (risk_pct / 100)
 risk_per_share = price - stop_loss_price
 
+# Mencegah error pembagian nol atau minus
 if risk_per_share > 0:
     total_shares = risk_amount / risk_per_share
     total_lots = int(total_shares / 100)
     total_investment = total_lots * 100 * price
     
-    st.subheader("Hasil Analisis")
-    res1, res2, res3 = st.columns(3)
-    res1.metric("Max Risk", f"Rp {risk_amount:,.0f}")
-    res2.metric("Jumlah Lot", f"{total_lots} Lot")
-    res3.metric("Total Beli", f"Rp {total_investment:,.0f}")
-else:
-    st.error("Harga Stop Loss harus lebih rendah dari Harga Beli.")
+    # --- Tampilan Hasil ---
+    st.subheader("Hasil Perhitungan")
+    
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Max Risk (Rp)", f"{risk_amount:,.0f}")
+    c2.metric("Jumlah Lot", f"{total_lots}")
+    c3.metric("Total Modal Terpakai", f"Rp {total_investment:,.0f}")
+    
+    # Info tambahan jika mau
+    st.caption(f"Risk per share: {risk_per_share} poin")
 
-st.divider()
-
-# Fitur Berita Saham
-if ticker:
-    st.subheader(f"10 Berita Terbaru: {ticker}")
-    try:
-        # Menggunakan RSS Feed Google News untuk berita saham Indonesia
-        rss_url = f"https://news.google.com/rss/search?q={ticker}+stock+indonesia&hl=id&gl=ID&ceid=ID:id"
-        feed = feedparser.parse(rss_url)
-        
-        news_data = []
-        for entry in feed.entries[:10]:
-            news_data.append({
-                "Tanggal": entry.published[:16],
-                "Judul Berita": entry.title,
-                "Link": entry.link
-            })
-        
-        if news_data:
-            df_news = pd.DataFrame(news_data)
-            st.table(df_news)
-        else:
-            st.write("Tidak ada berita ditemukan.")
-    except Exception as e:
-        st.error(f"Gagal memuat berita: {e}")
+elif risk_per_share <= 0:
+    st.error("⚠️ Harga Stop Loss harus lebih kecil dari Harga Beli.")
             `,
           },
         },
