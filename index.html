@@ -1,528 +1,132 @@
 <!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Kalkulator Entri</title>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Kalkulator Lot</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.57.0/build/stlite.css" />
     <style>
-        :root {
-            --primary: #0068c9;
-            --bg: #ffffff;
-            --text: #262730;
-            --border: #e6e6e6;
-            --success: #09ab3b;
-            --danger: #ff2b2b;
-            --gray: #808495;
-            --font-std: 1rem;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-        }
-
-        .container { width: 100%; max-width: 600px; }
-        h2 { text-align: center; margin-bottom: 20px; font-size: 1.5rem; }
-
-        /* --- STYLE INPUT HIGH CONTRAST (WHITE) --- */
-        div[data-baseweb="input"], div[data-baseweb="select"] > div, div[data-baseweb="base-input"] {
-            background-color: transparent !important;
-            border: none !important;
-            border-bottom: 2px solid #ffffff !important;
-            border-radius: 0px !important;
-        }
-        
-        .stNumberInput input, .stTextInput input, div[data-baseweb="select"] div { 
-            text-align: center; 
-            font-weight: 700 !important;
-            color: #ffffff !important;
-            -webkit-text-fill-color: #ffffff !important;
-            caret-color: #ffffff;
-            font-size: 16px;
-            padding-bottom: 5px;
-        }
-        
-        input::placeholder {
-            color: rgba(255, 255, 255, 0.5) !important;
-            font-style: italic;
-            font-weight: normal;
-        }
-        
-        .input-label {
-            font-size: 13px;
-            font-weight: 600;
-            color: #ffffff !important;
-            margin-bottom: -10px;
-            display: block;
-            text-shadow: 0px 1px 2px rgba(0,0,0,0.5);
-        }
-
-        /* Card */
-        .card {
-            border: 1px solid var(--border);
-            border-radius: 0.5rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-        .card-title {
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            border-bottom: 1px solid #f0f0f0;
-            padding-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        /* Inputs */
-        .row { display: flex; gap: 10px; margin-bottom: 15px; align-items: flex-end; }
-        .col { flex: 1; }
-        label { display: block; font-size: 0.8rem; margin-bottom: 6px; color: var(--gray); font-weight: 500; }
-        
-        input[type="text"], input[type="number"], select {
-            width: 100%; padding: 0.6rem;
-            border: 1px solid var(--border); border-radius: 0.25rem;
-            font-size: var(--font-std); outline: none;
-            box-sizing: border-box; color: var(--text);
-            font-weight: 500; text-align: center; height: 42px;
-        }
-        input:focus { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
-
-        /* Buttons */
-        .btn {
-            background: var(--primary); color: white; border: none;
-            padding: 0 15px; border-radius: 4px; height: 42px;
-            font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center;
-            font-size: 0.9rem; width: 100%;
-        }
-        .btn:active { opacity: 0.9; }
-        .btn-loading { background: var(--gray); cursor: not-allowed; }
-
-        /* Plus Minus */
-        .input-group { display: flex; }
-        .input-group button {
-            background: #f0f2f6; border: 1px solid var(--border);
-            width: 42px; height: 42px; font-weight: bold; cursor: pointer;
-        }
-        .input-group .btn-minus { border-radius: 4px 0 0 4px; border-right: none; }
-        .input-group .btn-plus { border-radius: 0 4px 4px 0; border-left: none; }
-        .input-group input { border-radius: 0; z-index: 1; }
-
-        /* Risk Preview */
-        .risk-preview {
-            height: 42px; display: flex; align-items: center; justify-content: center;
-            font-weight: bold; color: var(--danger); background: #fff5f5;
-            border: 1px solid #ffebeb; border-radius: 4px;
-        }
-
-        /* Tables */
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        td { padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
-        tr:last-child td { border-bottom: none; }
-        .lbl { color: var(--gray); font-weight: 500; width: 50%; }
-        .val { text-align: right; font-weight: 600; font-family: monospace; }
-        
-        .text-green { color: var(--success); }
-        .text-red { color: var(--danger); }
-        .highlight-input { background-color: #fcfcfc; }
-        .fraction-hint { text-align: center; font-size: 0.7rem; color: var(--primary); margin-top: 2px; font-style: italic; }
-        
-        /* Technical Box */
-        .tech-box { background: #f8f9fa; border-radius: 4px; padding: 10px; margin-top: 10px; }
-        .tech-row { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px; border-bottom: 1px dashed #eee; padding-bottom: 2px;}
-        .tech-lbl { color: #666; }
-        .tech-val { font-weight: bold; font-family: monospace; }
+      /* CSS untuk menyembunyikan spinner/panah standar browser di input angka */
+      input[type=number]::-webkit-inner-spin-button, 
+      input[type=number]::-webkit-outer-spin-button { 
+        -webkit-appearance: none; 
+        margin: 0; 
+      }
+      input[type=number] {
+        -moz-appearance: textfield;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.57.0/build/stlite.js"></script>
+    <script>
+      stlite.mount(
+        {
+          requirements: ["pandas", "feedparser"], 
+          entrypoint: "app.py",
+          files: {
+            "app.py": `
+import streamlit as st
+import pandas as pd
+import feedparser
 
-<div class="container">
-    <h2>📈 Kalkulator Entri</h2>
+# Fungsi untuk menyimpan ke browser storage via stlite
+def save_settings(equity, risk):
+    st.session_state['saved_equity'] = equity
+    st.session_state['saved_risk'] = risk
 
-    <div class="card">
-        <div class="card-title">⚙️ Modal & Risiko</div>
-        <div class="row">
-            <div class="col"><label>Modal (Rp)</label><input type="text" id="modal" value="100.000.000" onkeyup="formatRupiahInput(this); calculate()"></div>
-            <div class="col">
-                <label>Tipe Risiko</label>
-                <select id="riskType" onchange="toggleRiskInput()">
-                    <option value="Persen">Persen (%)</option>
-                    <option value="Fixed">Fixed (Rp)</option>
-                </select>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col"><label id="inputLabel">Risiko (%)</label><input type="text" id="riskInput" value="0.5" onkeyup="handleRiskInput(this); calculate()"></div>
-            <div class="col"><label id="previewLabel">Estimasi (Rp)</label><div id="riskPreview" class="risk-preview">Rp 500.000</div></div>
-        </div>
-        <div class="row">
-            <div class="col"><label>Fee Beli (%)</label><input type="number" id="feeBuy" value="0.18" step="0.01" onchange="calculate()"></div>
-            <div class="col"><label>Fee Jual (%)</label><input type="number" id="feeSell" value="0.28" step="0.01" onchange="calculate()"></div>
-        </div>
-    </div>
+# Inisialisasi data tersimpan (Default jika kosong)
+if 'saved_equity' not in st.session_state:
+    st.session_state['saved_equity'] = 10000000.0
+if 'saved_risk' not in st.session_state:
+    st.session_state['saved_risk'] = 1.0
 
-    <div class="card">
-        <div class="card-title">
-            📝 Input Transaksi
-            <span id="dataStatus" style="font-size:0.7rem; font-weight:normal; color:var(--gray);"></span>
-        </div>
-        <div class="row">
-            <div class="col" style="flex: 2;">
-                <label>Kode Emiten</label>
-                <input type="text" id="ticker" placeholder="Cth: BBRI" style="text-transform: uppercase;">
-            </div>
-            <div class="col" style="flex: 1;">
-                <label>&nbsp;</label>
-                <button class="btn" id="btnFetch" onclick="fetchMarketData()">📡 Ambil Data</button>
-            </div>
-        </div>
-        
-        <div id="techDataContainer" class="tech-box" style="display:none;">
-            <div style="font-weight:bold; font-size:0.85rem; margin-bottom:8px; color:var(--primary);">📊 Info Teknikal (Live)</div>
-            <div id="techList"></div>
-        </div>
+st.title("Kalkulator Lot")
 
-        <div class="row" style="margin-top:15px;">
-            <div class="col">
-                <label>Harga Entri</label>
-                <div class="input-group">
-                    <button class="btn-minus" onclick="adjustPrice('entry', -1)">−</button>
-                    <input type="number" id="entry" class="highlight-input" placeholder="0" onchange="calculate()">
-                    <button class="btn-plus" onclick="adjustPrice('entry', 1)">+</button>
-                </div>
-                <div id="entryFraction" class="fraction-hint"></div>
-            </div>
-            <div class="col">
-                <label>Stop Loss</label>
-                <div class="input-group">
-                    <button class="btn-minus" onclick="adjustPrice('sl', -1)">−</button>
-                    <input type="number" id="sl" class="highlight-input" placeholder="0" onchange="calculate()">
-                    <button class="btn-plus" onclick="adjustPrice('sl', 1)">+</button>
-                </div>
-                <div id="slFraction" class="fraction-hint"></div>
-            </div>
-        </div>
-        
-        <input type="hidden" id="autoDailyVal" value="0">
-    </div>
+# Layout Utama
+col1, col2 = st.columns(2)
 
-    <div id="resultSection" style="display:none;">
-        <div class="card" style="background:#f0f2f6; border-left:4px solid var(--primary);">
-            <div class="card-title">Rencana Entri</div>
-            <table>
-                <tr><td class="lbl">Emiten</td><td class="val" id="resTicker">-</td></tr>
-                <tr><td class="lbl">Harga Entri</td><td class="val" id="resEntry">0</td></tr>
-                <tr><td class="lbl">Lot Beli</td><td class="val" id="resLot" style="font-size:1.2rem; color:var(--primary);">0 lot</td></tr>
-                <tr><td class="lbl">Harga Stop Loss</td><td class="val" id="resSL">0</td></tr>
-                <tr><td class="lbl">Resiko Trade (%)</td><td class="val text-red" id="resRiskPct">0%</td></tr>
-                <tr><td class="lbl">Resiko Trade (Rp)</td><td class="val text-red" id="resRiskRp">0</td></tr>
-                <tr><td class="lbl">Nilai Transaksi ini</td><td class="val" id="resCapital">0</td></tr>
-                <tr><td class="lbl">Pembanding: 1% Transaksi Harian Emiten</td><td class="val" id="resSafeLimit" style="color:var(--gray)">-</td></tr>
-            </table>
-        </div>
-
-        <div class="card">
-            <div class="card-title">Rencana Take Profit</div>
-            <table>
-                <tr style="background:#f8f9fa;">
-                    <td style="font-weight:bold; color:#555;">Reward</td>
-                    <td style="text-align:right; font-weight:bold; color:#555;">Harga</td>
-                    <td style="text-align:right; font-weight:bold; color:#555;">Profit (Rp)</td>
-                </tr>
-                <tbody id="tpTable"></tbody>
-            </table>
-        </div>
-    </div>
+with col1:
+    # Field Modal dengan state terakhir
+    equity = st.number_input("Total Modal (IDR)", 
+                             value=float(st.session_state['saved_equity']), 
+                             step=100000.0, 
+                             format="%.0f")
     
-    <div style="font-size:0.7rem; color:#aaa; text-align:center; margin-top:20px;">
-        Data provided by Yahoo Finance via Proxy. Delay 15 mins.<br>
-        Calculations are strictly mathematical estimates.
-    </div>
-</div>
+    # Input Kode Saham untuk Berita
+    ticker = st.text_input("Kode Saham (Contoh: MINA, CSIS, JMIA)", value="").upper()
 
-<script>
-    // --- UTILS ---
-    const formatIDR = num => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(num);
-    const parseRupiah = str => parseInt(str.toString().replace(/[^0-9]/g, '')) || 0;
+with col2:
+    # Field Risk dengan state terakhir
+    risk_pct = st.number_input("Risk per Trade (%)", 
+                               value=float(st.session_state['saved_risk']), 
+                               step=0.1, 
+                               format="%.1f")
     
-    const formatLargeIDR = (num) => {
-        if (num >= 1e12) return "Rp " + (num / 1e12).toFixed(2) + " T";
-        if (num >= 1e9) return "Rp " + (num / 1e9).toFixed(2) + " M";
-        if (num >= 1e6) return "Rp " + (num / 1e6).toFixed(2) + " Jt";
-        return "Rp " + formatIDR(num);
-    }
+    # Tombol Simpan Pengaturan
+    if st.button("💾 Simpan Modal & Risiko"):
+        save_settings(equity, risk_pct)
+        st.toast("Pengaturan tersimpan!")
 
-    function formatRupiahInput(input) {
-        let val = parseRupiah(input.value);
-        input.value = val > 0 ? val.toLocaleString('id-ID') : "";
-        calculate();
-    }
+st.divider()
 
-    // --- MARKET DATA FETCHING (FIXED WITH ALLORIGINS) ---
-    async function fetchMarketData() {
-        let tickerInput = document.getElementById('ticker').value.toUpperCase().trim();
-        if (!tickerInput) return alert("Masukkan kode emiten!");
+# Input Transaksi - Menghilangkan spinner browser via CSS di atas
+# Menggunakan step=1.0 agar tombol +/- Streamlit tetap ada untuk fraksi harga
+col_a, col_b = st.columns(2)
+with col_a:
+    price = st.number_input("Harga Beli (Entry)", value=1000, step=1)
+with col_b:
+    stop_loss_price = st.number_input("Harga Stop Loss", value=950, step=1)
 
-        let cleanTicker = tickerInput.replace('.JK', '');
-        let symbol = `${cleanTicker}.JK`;
+# Perhitungan Logika Lot
+risk_amount = equity * (risk_pct / 100)
+risk_per_share = price - stop_loss_price
 
-        let btn = document.getElementById('btnFetch');
-        let status = document.getElementById('dataStatus');
-        
-        btn.innerHTML = "⏳ Loading...";
-        btn.classList.add('btn-loading');
-        status.innerText = "";
-        document.getElementById('techDataContainer').style.display = 'none';
-
-        try {
-            // Menggunakan api.allorigins.win dengan mode raw dan timestamp agar tidak cache
-            const proxy = "https://api.allorigins.win/raw?url=";
-            const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=2y`;
-            const fullUrl = proxy + encodeURIComponent(targetUrl) + "&t=" + Date.now();
-            
-            const response = await fetch(fullUrl);
-            
-            if (!response.ok) throw new Error("Koneksi gagal. Coba lagi.");
-            
-            const json = await response.json();
-            
-            if (json.chart && json.chart.error) {
-                throw new Error(`Kode saham '${cleanTicker}' tidak ditemukan.`);
-            }
-            if (!json.chart || !json.chart.result || json.chart.result.length === 0) {
-                throw new Error("Data saham kosong/tidak tersedia.");
-            }
-            
-            const result = json.chart.result[0];
-            const quotes = result.indicators.quote[0];
-            const closes = quotes.close;
-            const volumes = quotes.volume;
-            const lastPrice = result.meta.regularMarketPrice;
-            
-            let cleanCloses = [], cleanVols = [];
-            for(let i=0; i<closes.length; i++) {
-                if(closes[i] !== null && volumes[i] !== null) {
-                    cleanCloses.push(closes[i]);
-                    cleanVols.push(volumes[i]);
-                }
-            }
-
-            // --- CALCULATE TECHNICALS ---
-            const calcSMA = (period) => {
-                if (cleanCloses.length < period) return 0;
-                let sum = 0;
-                for (let i = cleanCloses.length - period; i < cleanCloses.length; i++) sum += cleanCloses[i];
-                return sum / period;
-            };
-
-            const calcEMA = (period) => {
-                if (cleanCloses.length < period) return 0;
-                const k = 2 / (period + 1);
-                let ema = cleanCloses[0];
-                for (let i = 1; i < cleanCloses.length; i++) {
-                    ema = (cleanCloses[i] * k) + (ema * (1 - k));
-                }
-                return ema;
-            };
-
-            let sumTrans = 0, count = 0;
-            for(let i = cleanCloses.length - 20; i < cleanCloses.length; i++) {
-                if(i >= 0) {
-                    sumTrans += (cleanCloses[i] * cleanVols[i]);
-                    count++;
-                }
-            }
-            let avgDailyVal = count > 0 ? sumTrans / count : 0;
-
-            let techHtml = "";
-            techHtml += renderTechRow("Last Price", formatIDR(lastPrice), "");
-            techHtml += renderTechRow("Transaksi Harian (Avg 20)", formatLargeIDR(avgDailyVal), "");
-            document.getElementById('autoDailyVal').value = avgDailyVal;
-
-            [5, 10, 20].forEach(p => {
-                let val = calcEMA(p);
-                let signal = lastPrice > val ? "🟢" : "🔴";
-                techHtml += renderTechRow(`EMA ${p}`, formatIDR(Math.floor(val)), signal);
-            });
-
-            [50, 100, 200].forEach(p => {
-                let val = calcSMA(p);
-                let signal = lastPrice > val ? "🟢" : "🔴";
-                techHtml += renderTechRow(`MA ${p}`, formatIDR(Math.floor(val)), signal);
-            });
-
-            document.getElementById('techList').innerHTML = techHtml;
-            document.getElementById('techDataContainer').style.display = 'block';
-            
-            calculate(); // Update safe limit display
-            status.innerText = `Update: ${new Date().toLocaleTimeString()}`;
-
-        } catch (e) {
-            console.error(e);
-            alert("⚠️ " + e.message);
-        } finally {
-            btn.innerHTML = "📡 Ambil Data";
-            btn.classList.remove('btn-loading');
-        }
-    }
-
-    function renderTechRow(label, val, signal) {
-        return `<div class="tech-row"><span class="tech-lbl">${label}</span><span class="tech-val">${signal} ${val}</span></div>`;
-    }
-
-    // --- RISK UI LOGIC ---
-    function toggleRiskInput() {
-        let riskType = document.getElementById('riskType').value;
-        let modal = parseRupiah(document.getElementById('modal').value);
-        let inputField = document.getElementById('riskInput');
-        let currentVal = parseRupiah(inputField.value.toString().replace('.',','));
-
-        if (riskType === 'Persen') {
-            let percent = modal > 0 ? (currentVal / modal) * 100 : 0;
-            inputField.value = percent.toFixed(1); 
-        } else {
-            let currentPct = parseFloat(inputField.value) || 0;
-            let rupiah = (currentPct / 100) * modal;
-            inputField.value = rupiah.toLocaleString('id-ID');
-        }
-        calculate();
-    }
-
-    function handleRiskInput(input) {
-        let riskType = document.getElementById('riskType').value;
-        if (riskType === 'Fixed') formatRupiahInput(input);
-        else calculate();
-    }
-
-    // --- FRACTION LOGIC ---
-    function getTickSize(price) {
-        if (price < 200) return 1;
-        if (price < 500) return 2;
-        if (price < 2000) return 5;
-        if (price < 5000) return 10;
-        return 25;
-    }
-
-    function adjustPrice(id, dir) {
-        let input = document.getElementById(id);
-        let val = parseInt(input.value) || 0;
-        let tick = 1;
-        
-        if (dir === 1) {
-            tick = getTickSize(val);
-            input.value = val + tick;
-        } else {
-            if (val <= 200) tick = 1;
-            else if (val <= 500) tick = (val % 2 !== 0) ? 1 : 2;
-            else if (val <= 2000) tick = (val % 5 !== 0) ? (val % 5) : 5;
-            else if (val <= 5000) tick = (val % 10 !== 0) ? (val % 10) : 10;
-            else tick = (val % 25 !== 0) ? (val % 25) : 25;
-            
-            if (val === 5000) tick = 10; if (val === 2000) tick = 5; if (val === 500) tick = 2;
-            input.value = Math.max(0, val - tick);
-        }
-        snapToFraction(input);
-    }
-
-    function snapToFraction(input) {
-        let val = parseInt(input.value) || 0;
-        if(val > 0) {
-            let tick = getTickSize(val);
-            let rem = val % tick;
-            if(rem !== 0) input.value = val - rem;
-            document.getElementById(input.id+'Fraction').innerText = `Fraksi: ${tick}`;
-        } else {
-            document.getElementById(input.id+'Fraction').innerText = "";
-        }
-        calculate();
-    }
-
-    // --- CALCULATE ---
-    function calculate() {
-        let modal = parseRupiah(document.getElementById('modal').value);
-        let riskType = document.getElementById('riskType').value;
-        let feeBuy = (parseFloat(document.getElementById('feeBuy').value)||0) / 100;
-        let feeSell = (parseFloat(document.getElementById('feeSell').value)||0) / 100;
-        
-        let inputLabel = document.getElementById('inputLabel');
-        let previewLabel = document.getElementById('previewLabel');
-        let riskEl = document.getElementById('riskPreview');
-        let riskInputVal = document.getElementById('riskInput').value;
-        
-        let maxRiskRp = 0;
-        if (riskType === 'Persen') {
-            inputLabel.innerText = "Risiko (%)";
-            previewLabel.innerText = "Estimasi (Rp)";
-            let pct = parseFloat(riskInputVal) || 0;
-            maxRiskRp = modal * (pct / 100);
-            riskEl.innerText = "Rp " + formatIDR(Math.round(maxRiskRp));
-        } else {
-            inputLabel.innerText = "Risiko (Rp)";
-            previewLabel.innerText = "Estimasi (%)";
-            maxRiskRp = parseRupiah(riskInputVal);
-            let pct = modal > 0 ? (maxRiskRp / modal) * 100 : 0;
-            riskEl.innerText = pct.toFixed(2) + "%";
-        }
-
-        let ticker = document.getElementById('ticker').value.toUpperCase();
-        let entry = parseInt(document.getElementById('entry').value) || 0;
-        let sl = parseInt(document.getElementById('sl').value) || 0;
-        let autoVal = parseFloat(document.getElementById('autoDailyVal').value) || 0;
-
-        if (entry > 0 && sl > 0 && ticker !== "") {
-            document.getElementById('resultSection').style.display = 'block';
-            
-            let entryCost = entry * (1 + feeBuy);
-            let slNet = sl * (1 - feeSell);
-            let riskPerShare = entryCost - slNet;
-            
-            let lots = 0;
-            if (riskPerShare > 0) lots = Math.floor((maxRiskRp / riskPerShare) / 100);
-            
-            let capitalReq = lots * 100 * entryCost;
-            let realRisk = lots * 100 * riskPerShare;
-            let riskPct = ((entry - sl)/entry)*100;
-
-            document.getElementById('resTicker').innerText = ticker;
-            document.getElementById('resEntry').innerText = formatIDR(entry);
-            document.getElementById('resLot').innerText = formatIDR(lots) + " lot";
-            document.getElementById('resSL').innerText = formatIDR(sl);
-            document.getElementById('resRiskPct').innerText = "-" + riskPct.toFixed(2) + "%";
-            document.getElementById('resRiskRp').innerText = "-" + formatIDR(Math.round(realRisk));
-            document.getElementById('resCapital').innerText = formatLargeIDR(capitalReq);
-            
-            if(autoVal > 0) {
-                document.getElementById('resSafeLimit').innerText = formatLargeIDR(autoVal * 0.01);
-            } else {
-                document.getElementById('resSafeLimit').innerText = "(Klik Ambil Data)";
-            }
-
-            let html = "";
-            for(let r=1; r<=5; r++) {
-                let netTarget = r * riskPerShare;
-                let grossTP = (entryCost + netTarget) / (1 - feeSell);
-                let tick = getTickSize(grossTP);
-                let tp = Math.round(grossTP / tick) * tick;
-                let profit = (tp * (1 - feeSell) * lots * 100) - (entryCost * lots * 100);
-                
-                html += `<tr><td style="color:var(--gray)">RR 1:${r}</td><td class="val">${formatIDR(tp)}</td><td class="val text-green">+${formatIDR(Math.round(profit))}</td></tr>`;
-            }
-            document.getElementById('tpTable').innerHTML = html;
-        } else {
-            document.getElementById('resultSection').style.display = 'none';
-        }
-    }
+if risk_per_share > 0:
+    total_shares = risk_amount / risk_per_share
+    total_lots = int(total_shares / 100)
+    total_investment = total_lots * 100 * price
     
-    // Initial Calc
-    calculate();
-</script>
+    st.subheader("Hasil Analisis")
+    res1, res2, res3 = st.columns(3)
+    res1.metric("Max Risk", f"Rp {risk_amount:,.0f}")
+    res2.metric("Jumlah Lot", f"{total_lots} Lot")
+    res3.metric("Total Beli", f"Rp {total_investment:,.0f}")
+else:
+    st.error("Harga Stop Loss harus lebih rendah dari Harga Beli.")
 
-</body>
+st.divider()
+
+# Fitur Berita Saham
+if ticker:
+    st.subheader(f"10 Berita Terbaru: {ticker}")
+    try:
+        # Menggunakan RSS Feed Google News untuk berita saham Indonesia
+        rss_url = f"https://news.google.com/rss/search?q={ticker}+stock+indonesia&hl=id&gl=ID&ceid=ID:id"
+        feed = feedparser.parse(rss_url)
+        
+        news_data = []
+        for entry in feed.entries[:10]:
+            news_data.append({
+                "Tanggal": entry.published[:16],
+                "Judul Berita": entry.title,
+                "Link": entry.link
+            })
+        
+        if news_data:
+            df_news = pd.DataFrame(news_data)
+            st.table(df_news)
+        else:
+            st.write("Tidak ada berita ditemukan.")
+    except Exception as e:
+        st.error(f"Gagal memuat berita: {e}")
+            `,
+          },
+        },
+        document.getElementById("root")
+      );
+    </script>
+  </body>
 </html>
