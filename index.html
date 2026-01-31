@@ -1,148 +1,97 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kalkulator Lot</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.57.0/build/stlite.css" />
     <style>
-      /* CSS untuk menyembunyikan spinner/panah standar browser di input angka */
-      input[type=number]::-webkit-inner-spin-button, 
-      input[type=number]::-webkit-outer-spin-button { 
-        -webkit-appearance: none; 
-        margin: 0; 
-      }
-      input[type=number] {
-        -moz-appearance: textfield;
-      }
+        body { font-family: sans-serif; background-color: #121212; color: #e0e0e0; padding: 20px; }
+        .container { max-width: 500px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 8px; }
+        input, select { width: 100%; padding: 10px; margin: 10px 0; background: #2d2d2d; color: white; border: 1px solid #444; border-radius: 4px; box-sizing: border-box;}
+        .result { background: #252525; padding: 15px; margin-top: 20px; border-left: 4px solid #4caf50; }
+        .sharia-tag { color: #4caf50; font-weight: bold; font-size: 0.9em; }
+        .tp-list { font-size: 0.9em; color: #bbb; }
     </style>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script src="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.57.0/build/stlite.js"></script>
-    <script>
-      stlite.mount(
-        {
-          requirements: ["pandas"], // feedparser DIHAPUS
-          entrypoint: "app.py",
-          files: {
-            "app.py": `
-import streamlit as st
-import pandas as pd
-import xml.etree.ElementTree as ET
-from pyodide.http import open_url
+</head>
+<body>
 
-# --- Fungsi Utility ---
-def save_settings(equity, risk):
-    st.session_state['saved_equity'] = equity
-    st.session_state['saved_risk'] = risk
-
-# Inisialisasi State
-if 'saved_equity' not in st.session_state:
-    st.session_state['saved_equity'] = 10000000.0
-if 'saved_risk' not in st.session_state:
-    st.session_state['saved_risk'] = 1.0
-
-# --- Layout Aplikasi ---
-st.title("Kalkulator Lot")
-
-col1, col2 = st.columns(2)
-
-with col1:
-    equity = st.number_input("Total Modal (IDR)", 
-                             value=float(st.session_state['saved_equity']), 
-                             step=100000.0, 
-                             format="%.0f")
-    ticker = st.text_input("Kode Saham (Contoh: MINA)", value="").upper()
-
-with col2:
-    risk_pct = st.number_input("Risk per Trade (%)", 
-                               value=float(st.session_state['saved_risk']), 
-                               step=0.1, 
-                               format="%.1f")
+<div class="container">
+    <h2>Kalkulator Lot</h2>
     
-    if st.button("💾 Simpan Modal & Risiko"):
-        save_settings(equity, risk_pct)
-        st.toast("Disimpan sementara di sesi ini!")
-
-st.divider()
-
-# --- Kalkulator ---
-col_a, col_b = st.columns(2)
-with col_a:
-    price = st.number_input("Harga Beli (Entry)", value=1000, step=1)
-with col_b:
-    stop_loss_price = st.number_input("Harga Stop Loss", value=950, step=1)
-
-risk_amount = equity * (risk_pct / 100)
-risk_per_share = price - stop_loss_price
-
-if risk_per_share > 0:
-    total_shares = risk_amount / risk_per_share
-    total_lots = int(total_shares / 100)
-    total_investment = total_lots * 100 * price
+    <label>Modal (Rp)</label>
+    <input type="number" id="modal" value="50000000">
     
-    st.subheader("Hasil Analisis")
-    res1, res2, res3 = st.columns(3)
-    res1.metric("Max Risk", f"Rp {risk_amount:,.0f}")
-    res2.metric("Jumlah Lot", f"{total_lots} Lot")
-    res3.metric("Total Beli", f"Rp {total_investment:,.0f}")
-else:
-    st.error("Harga Stop Loss harus lebih rendah dari Harga Beli.")
+    <label>Risk per Trade (%)</label>
+    <input type="number" id="riskPct" step="0.01" value="0.50">
+    
+    <label>Ticker (Contoh: GOLF)</label>
+    <input type="text" id="ticker" placeholder="Ketik Kode Saham..." oninput="checkSharia()">
+    <div id="shariaStatus" class="sharia-tag"></div>
 
-st.divider()
+    <label>Entry Price</label>
+    <input type="number" id="entry" value="354">
+    
+    <label>Stop Loss (SL)</label>
+    <input type="number" id="sl" value="324">
 
-# --- Fitur Berita (Menggunakan XML Parsing Standard) ---
-if ticker:
-    st.subheader(f"10 Berita Terbaru: {ticker}")
-    try:
-        # URL RSS Google News
-        rss_url = f"https://news.google.com/rss/search?q={ticker}+stock+indonesia&hl=id&gl=ID&ceid=ID:id"
-        
-        # Fetch menggunakan pyodide.http (Aman untuk browser)
-        response_content = open_url(rss_url).read()
-        
-        # Parsing XML manual tanpa feedparser
-        root = ET.fromstring(response_content)
-        
-        news_data = []
-        # Loop cari item berita
-        for item in root.findall(".//item")[:10]:
-            title = item.find("title").text if item.find("title") is not None else "No Title"
-            link = item.find("link").text if item.find("link") is not None else "#"
-            pubDate = item.find("pubDate").text if item.find("pubDate") is not None else ""
-            
-            # Format tanggal sederhana
-            date_display = pubDate[:16] if len(pubDate) > 16 else pubDate
-            
-            news_data.append({
-                "Tanggal": date_display,
-                "Judul": title,
-                "Link": link
-            })
-        
-        if news_data:
-            # Tampilkan sebagai Dataframe dengan Column Config untuk Link
-            df_news = pd.DataFrame(news_data)
-            st.dataframe(
-                df_news,
-                column_config={
-                    "Link": st.column_config.LinkColumn("Baca Berita")
-                },
-                hide_index=True,
-                use_container_width=True
-            )
-        else:
-            st.warning("Tidak ada berita ditemukan.")
-            
-    except Exception as e:
-        st.error(f"Gagal mengambil berita. Pastikan koneksi internet stabil. Error: {e}")
-            `,
-          },
-        },
-        document.getElementById("root")
-      );
-    </script>
-  </body>
+    <button onclick="calculate()" style="width:100%; padding:10px; background:#4caf50; color:white; border:none; border-radius:4px; cursor:pointer;">Hitung</button>
+
+    <div id="results" class="result" style="display:none;">
+        <strong>Lot Beli: <span id="resLot">0</span></strong><br>
+        Total Value: <span id="resValue">Rp 0</span><br>
+        Risk Amount: <span id="resRisk">Rp 0</span><br>
+        <hr>
+        <div class="tp-list">
+            TP 1R: <span id="tp1"></span><br>
+            TP 2R: <span id="tp2"></span><br>
+            TP 3R: <span id="tp3"></span>
+        </div>
+    </div>
+</div>
+
+<script>
+// Data Saham Syariah dari referensi Anda
+const shariaStocks = ["AADI", "AALI", "ABMM", "ACES", "ACST", "ADCP", "ADES", "ADHI", "ADMG", "ADMR", "ADRO", "AGAR", "AGII", "AIMS", "AISA", "AKKU", "AKPI", "AKRA", "AKSI", "ALDO", "ALKA", "AMAN", "AMFG", "AMIN", "ANDI", "ANJT", "ANTM", "APII", "APLI", "APLN", "ARCI", "AREA", "ARGO", "ARII", "ARNA", "ARTA", "ASGR", "ASHA", "ASII", "ASLC", "ASLI", "ASPI", "ASRI", "ASSA", "ATAP", "ATIC", "ATLA", "AUTO", "AVIA", "AWAN", "AXIO", "AYAM", "AYLS", "BABY", "BAIK", "BANK", "BAPI", "BATA", "BATR", "BAUT", "BAYU", "BBRM", "BBSS", "BCIP", "BDKR", "BEEF", "BELI", "BELL", "BESS", "BEST", "BIKE", "BINO", "BIPP", "BIRD", "BISI", "BKDP", "BKSL", "BLES", "BLOG", "BLTA", "BLTZ", "BLUE", "BMHS", "BMSR", "BMTR", "BNBR", "BOAT", "BOBA", "BOGA", "BOLA", "BOLT", "BRAM", "BRIS", "BRMS", "BRNA", "BRPT", "BRRC", "BSBK", "BSDE", "BSML", "BSSR", "BTPS", "BUAH", "BUKK", "BULL", "BUMI", "BUVA", "BYAN", "CAKK", "CAMP", "CANI", "CARE", "CASS", "CBDK", "CBPE", "CBRE", "CCSI", "CEKA", "CGAS", "CHEK", "CHEM", "CINT", "CITA", "CITY", "CLEO", "CLPI", "CMNP", "CMPP", "CMRY", "CNKO", "CNMA", "COAL", "CPIN", "CPRO", "CRAB", "CRSN", "CSAP", "CSIS", "CSMI", "CSRA", "CTBN", "CTRA", "CYBR", "DAAZ", "DADA", "DATA", "DAYA", "DCII", "DEFI", "DEPO", "DEWA", "DEWI", "DGIK", "DGNS", "DGWG", "DILD", "DIVA", "DKFT", "DKHH", "DMAS", "DMMX", "DMND", "DOOH", "DOSS", "DRMA", "DSFI", "DSNG", "DSSA", "DUTI", "DVLA", "DWGL", "DYAN", "EAST", "ECII", "EDGE", "EKAD", "ELIT", "ELPI", "ELSA", "ELTY", "EMDE", "ENAK", "ENRG", "EPAC", "EPMT", "ERAA", "ERAL", "ESIP", "ESSA", "ESTA", "EXCL", "FAST", "FASW", "FILM", "FIRE", "FISH", "FITT", "FMII", "FOLK", "FOOD", "FORE", "FPNI", "FUTR", "FWCT", "GDST", "GDYR", "GEMA", "GEMS", "GGRP", "GHON", "GIAA", "GJTL", "GLVA", "GMTD", "GOLD", "GOLF", "GOOD", "GPRA", "GPSO", "GRIA", "GRPH", "GTBO", "GTRA", "GTSI", "GULA", "GUNA", "GWSA", "GZCO", "HADE", "HAIS", "HALO", "HATM", "HDIT", "HEAL", "HERO", "HEXA", "HGII", "HITS", "HOKI", "HOMI", "HOPE", "HRME", "HRUM", "HUMI", "HYGN", "IATA", "IBST", "ICBP", "ICON", "IDPR", "IFII", "IFSH", "IGAR", "IIKP", "IKAI", "IKAN", "IKBI", "IKPM", "IMPC", "INCI", "INCO", "INDF", "INDR", "INDS", "INDX", "INDY", "INET", "INKP", "INPP", "INTD", "INTP", "IOTF", "IPCC", "IPCM", "IPOL", "IPTV", "IRRA", "IRSX", "ISAT", "ISSP", "ITMA", "ITMG", "JAST", "JATI", "JAWA", "JAYA", "JECC", "JGLE", "JIHD", "JKON", "JMAS", "JPFA", "JRPT", "JSMR", "JSPT", "JTPE", "KAQI", "KARW", "KBAG", "KBLI", "KBLM", "KDSI", "KDTN", "KEEN", "KEJU", "KETR", "KIAS", "KICI", "KIJA", "KINO", "KIOS", "KJEN", "KKES", "KKGI", "KLAS", "KLBF", "KMDS", "KOBX", "KOCI", "KOIN", "KOKA", "KONI", "KOPI", "KOTA", "KPIG", "KREN", "KRYA", "KSIX", "KUAS", "LABA", "LABS", "LAJU", "LAND", "LCKM", "LION", "LIVE", "LMPI", "LMSH", "LPCK", "LPIN", "LPKR", "LPLI", "LPPF", "LRNA", "LSIP", "LTLS", "LUCK", "MAHA", "MAIN", "MAPA", "MAPB", "MAPI", "MARK", "MAXI", "MBAP", "MBMA", "MBTO", "MCAS", "MCOL", "MDIY", "MDKA", "MDKI", "MDLA", "MEDC", "MEDS", "MERI", "MERK", "META", "MFMI", "MGNA", "MHKI", "MICE", "MIDI", "MIKA", "MINA", "MINE", "MIRA", "MITI", "MKAP", "MKPI", "MKTR", "MLIA", "MLPL", "MLPT", "MMIX", "MMLP", "MNCN", "MORA", "MPIX", "MPMX", "MPOW", "MPPA", "MPRO", "MRAT", "MSIN", "MSJA", "MSKY", "MSTI", "MTDL", "MTEL", "MTFN", "MTLA", "MTMH", "MTPS", "MTSM", "MUTU", "MYOH", "MYOR", "NAIK", "NASA", "NASI", "NCKL", "NELY", "NEST", "NETV", "NFCX", "NICE", "NICL", "NIKL", "NPGF", "NRCA", "NTBK", "NZIA", "OASA", "OBAT", "OBMD", "OILS", "OKAS", "OMED", "OMRE", "PADA", "PALM", "PAMG", "PANI", "PANR", "PART", "PBID", "PBSA", "PCAR", "PDES", "PDPP", "PEHA", "PEVE", "PGAS", "PGEO", "PGLI", "PGUN", "PICO", "PIPA", "PJAA", "PJHB", "PKPK", "PLIN", "PMJS", "PMUI", "PNBS", "PNGO", "PNSE", "POLI", "POLU", "PORT", "POWR", "PPRE", "PPRI", "PPRO", "PRAY", "PRDA", "PRIM", "PSAB", "PSAT", "PSDN", "PSGO", "PSKT", "PSSI", "PTBA", "PTIS", "PTMP", "PTMR", "PTPP", "PTPS", "PTPW", "PTSN", "PTSP", "PURA", "PURI", "PWON", "PZZA", "RAAM", "RAFI", "RAJA", "RALS", "RANC", "RATU", "RBMS", "RDTX", "RGAS", "RIGS", "RISE", "RMKE", "RMKO", "ROCK", "RODA", "RONY", "ROTI", "RSGK", "RUIS", "SAFE", "SAGE", "SAME", "SAMF", "SAPX", "SATU", "SBMA", "SCCO", "SCNP", "SCPI", "SEMA", "SGER", "SGRO", "SHID", "SHIP", "SICO", "SIDO", "SILO", "SIMP", "SIPD", "SKBM", "SKLT", "SKRN", "SLIS", "SMAR", "SMBR", "SMCB", "SMDM", "SMDR", "SMGA", "SMGR", "SMIL", "SMKL", "SMLE", "SMMT", "SMRA", "SMSM", "SNLK", "SOCI", "SOHO", "SOLA", "SONA", "SOSS", "SOTS", "SPMA", "SPTO", "SRTG", "SSIA", "SSTM", "STAA", "STTP", "SULI", "SUNI", "SUPR", "SURI", "SWID", "TALF", "TAMA", "TAMU", "TAPG", "TARA", "TAXI", "TBMS", "TCID", "TCPI", "TEBE", "TFAS", "TFCO", "TGKA", "TGUK", "TINS", "TIRA", "TIRT", "TKIM", "TLDN", "TLKM", "TMAS", "TMPO", "TNCA", "TOBA", "TOOL", "TOSK", "TOTL", "TOTO", "TPIA", "TPMA", "TRIS", "TRJA", "TRON", "TRST", "TRUE", "TRUK", "TSPC", "TYRE", "UANG", "UCID", "UFOE", "ULTJ", "UNIC", "UNIQ", "UNTR", "UNVR", "UVCR", "VAST", "VERN", "VICI", "VISI", "VKTR", "VOKS", "WAPO", "WEGE", "WEHA", "WINR", "WINS", "WIRG", "WMUU", "WOOD", "WOWS", "WTON", "YELO", "YPAS", "YUPI", "ZATA", "ZONE", "ZYRX"];
+
+function checkSharia() {
+    const input = document.getElementById('ticker').value.toUpperCase();
+    const statusDiv = document.getElementById('shariaStatus');
+    if (shariaStocks.includes(input)) {
+        statusDiv.innerText = "✓ Saham Syariah";
+    } else {
+        statusDiv.innerText = "";
+    }
+}
+
+function calculate() {
+    const modal = parseFloat(document.getElementById('modal').value);
+    const riskPct = parseFloat(document.getElementById('riskPct').value) / 100;
+    const entry = parseFloat(document.getElementById('entry').value);
+    const sl = parseFloat(document.getElementById('sl').value);
+
+    const riskAmount = modal * riskPct;
+    const riskPerShare = entry - sl;
+
+    if (riskPerShare <= 0) {
+        alert("SL harus lebih rendah dari Entry");
+        return;
+    }
+
+    const totalShares = Math.floor(riskAmount / riskPerShare);
+    const totalLot = Math.floor(totalShares / 100);
+    const totalValue = totalLot * 100 * entry;
+
+    document.getElementById('resLot').innerText = totalLot;
+    document.getElementById('resValue').innerText = "Rp " + totalValue.toLocaleString();
+    document.getElementById('resRisk').innerText = "Rp " + riskAmount.toLocaleString();
+    
+    // Hitung TP (Risk Reward 1R - 3R)
+    document.getElementById('tp1').innerText = entry + (riskPerShare * 1);
+    document.getElementById('tp2').innerText = entry + (riskPerShare * 2);
+    document.getElementById('tp3').innerText = entry + (riskPerShare * 3);
+
+    document.getElementById('results').style.display = 'block';
+}
+</script>
+</body>
 </html>
