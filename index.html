@@ -5,31 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kalkulator Lot</title>
     <style>
-        body { font-family: sans-serif; background-color: #121212; color: #e0e0e0; padding: 20px; font-size: 14px; line-height: 1.5; }
-        .container { max-width: 480px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        /* Mengatur font agar seragam di semua elemen */
+        * { font-size: 14px; font-family: sans-serif; box-sizing: border-box; }
+        
+        body { background-color: #121212; color: #e0e0e0; padding: 20px; line-height: 1.5; }
+        .container { max-width: 480px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 8px; }
         
         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; background: #252525; }
-        th { background: #333; color: #4caf50; padding: 10px; text-align: left; border: 1px solid #444; }
+        th { background: #333; color: #66bb6a; padding: 10px; text-align: left; border: 1px solid #444; }
         td { padding: 8px 10px; border: 1px solid #444; }
         
-        input { width: 100%; padding: 8px; background: #2d2d2d; color: white; border: 1px solid #444; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+        input { width: 100%; padding: 8px; background: #2d2d2d; color: white; border: 1px solid #444; border-radius: 4px; }
         
-        button { width: 100%; padding: 12px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; margin-bottom: 20px;}
+        /* Warna hijau yang lebih redup (muted emerald) */
+        .muted-green { color: #81c784; }
+        .muted-red { color: #e57373; }
         
-        .result-box { background: #252525; padding: 15px; border-top: 2px solid #4caf50; border-radius: 4px; }
-        .status-syariah { font-weight: bold; }
-        .is-syariah { color: #4caf50; }
-        .non-syariah { color: #ff5252; }
+        button { width: 100%; padding: 12px; background: #457b47; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 20px;}
+        button:hover { background: #38633a; }
         
-        .tp-table { width: 100%; margin-top: 15px; font-size: 13px; }
-        .tp-table td { border: none; border-bottom: 1px solid #333; padding: 5px 0; }
-        .highlight { color: #4caf50; font-weight: bold; font-size: 1.1em; }
+        .result-box { background: #252525; padding: 15px; border-top: 2px solid #457b47; border-radius: 4px; }
+        .status-tag { font-weight: bold; }
+        
+        .tp-table { width: 100%; margin-top: 15px; }
+        .tp-table td { border: none; border-bottom: 1px solid #333; padding: 6px 0; }
+        
+        .warning-text { font-size: 12px; color: #ffa726; font-style: italic; margin-top: 10px; display: block; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h3 style="text-align: center; margin-top: 0; color: white;">Kalkulator Lot</h3>
+    <h3 style="text-align: center; margin-top: 0; color: white; font-size: 16px;">Kalkulator Lot</h3>
     
     <table>
         <thead>
@@ -71,20 +78,22 @@
 
     <div id="results" class="result-box" style="display:none;">
         <div style="margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 10px;">
-            <span id="resTicker" style="font-weight: bold; text-transform: uppercase; font-size: 16px;">-</span>
-            <span id="resSharia" class="status-syariah"></span>
-            <div style="color: #bbb; font-size: 12px; margin-top: 4px;">
-                Entry: <span id="infoEntry"></span> | SL: <span id="infoSL"></span> (<span id="infoRiskPct" style="color: #ff5252;"></span>)
+            <span id="resTicker" style="font-weight: bold; text-transform: uppercase;">-</span>
+            <span id="resSharia" class="status-tag"></span>
+            <div style="color: #bbb; margin-top: 4px;">
+                Entry: <span id="infoEntry"></span> | SL: <span id="infoSL"></span> (<span id="infoRiskPct" class="muted-red"></span>)
             </div>
         </div>
         
-        <div style="margin-bottom: 15px;">
-            Pesanan: <span id="resLot" class="highlight">0</span> Lot<br>
+        <div style="margin-bottom: 10px;">
+            Lot Beli: <span id="resLot" style="font-weight: bold;" class="muted-green">0</span> Lot<br>
             Total Nilai: <span id="resValue">Rp 0</span><br>
-            Risiko Uang: <span id="resRisk" style="color: #ff5252;">Rp 0</span>
+            Risiko Uang (1R): <span id="resRisk" class="muted-red">Rp 0</span>
         </div>
+
+        <span class="warning-text">*Peringatan: Estimasi belum termasuk fee beli/jual sekuritas dan pajak.</span>
         
-        <div style="font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px;">TARGET PROFIT (REWARD)</div>
+        <div style="font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px; margin-top: 15px;">TARGET PROFIT (REWARD)</div>
         <table class="tp-table">
             <tbody id="tpBody">
                 </tbody>
@@ -104,16 +113,14 @@ function checkTicker() {
     const ticker = document.getElementById('ticker').value.toUpperCase();
     const shariaSpan = document.getElementById('resSharia');
     const tickerSpan = document.getElementById('resTicker');
-    
     tickerSpan.innerText = ticker || "-";
     if (!ticker) { shariaSpan.innerText = ""; return; }
-    
     if (shariaStocks.includes(ticker)) {
         shariaSpan.innerText = " (✓ Syariah/ISSI)";
-        shariaSpan.className = "status-syariah is-syariah";
+        shariaSpan.className = "status-tag muted-green";
     } else {
         shariaSpan.innerText = " (✗ Non-ISSI/Non-Syariah)";
-        shariaSpan.className = "status-syariah non-syariah";
+        shariaSpan.className = "status-tag muted-red";
     }
 }
 
@@ -135,28 +142,29 @@ function calculate() {
     const totalLot = Math.floor((riskAmount / riskPerShare) / 100);
     const totalValue = totalLot * 100 * entry;
 
-    // Tabel Info Emiten Bawah
     document.getElementById('infoEntry').innerText = entry.toLocaleString('id-ID');
     document.getElementById('infoSL').innerText = sl.toLocaleString('id-ID');
     document.getElementById('infoRiskPct').innerText = slPct + "%";
 
-    // Hasil Utama
     document.getElementById('resLot').innerText = totalLot.toLocaleString('id-ID');
     document.getElementById('resValue').innerText = "Rp " + totalValue.toLocaleString('id-ID');
-    document.getElementById('resRisk').innerText = "Rp " + riskAmount.toLocaleString('id-ID');
+    document.getElementById('resRisk').innerText = "Rp " + (totalLot * 100 * riskPerShare).toLocaleString('id-ID');
     
-    // Generasi TP 1R - 6R
     let tpHtml = "";
     for(let r=1; r<=6; r++) {
         const tpPrice = entry + (riskPerShare * r);
         const tpPct = (((tpPrice - entry) / entry) * 100).toFixed(2);
+        const tpProfitRupiah = totalLot * 100 * (riskPerShare * r);
+        
         tpHtml += `<tr>
-            <td>TP ${r}R (Reward ${r}:1)</td>
-            <td style="text-align: right;"><strong>${tpPrice.toLocaleString('id-ID')}</strong> <span style="color: #4caf50;">(+${tpPct}%)</span></td>
+            <td width="40%">TP ${r}R (Reward ${r}:1)</td>
+            <td style="text-align: right;">
+                <strong>${tpPrice.toLocaleString('id-ID')}</strong> <span class="muted-green">(+${tpPct}%)</span><br>
+                <span style="font-size: 11px; color: #aaa;">Est. Profit: Rp ${tpProfitRupiah.toLocaleString('id-ID')}</span>
+            </td>
         </tr>`;
     }
     document.getElementById('tpBody').innerHTML = tpHtml;
-
     document.getElementById('results').style.display = 'block';
 }
 </script>
