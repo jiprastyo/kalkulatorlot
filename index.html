@@ -5,31 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kalkulator Lot</title>
     <style>
-        /* Mengatur font agar seragam di semua elemen */
         * { font-size: 14px; font-family: sans-serif; box-sizing: border-box; }
-        
         body { background-color: #121212; color: #e0e0e0; padding: 20px; line-height: 1.5; }
         .container { max-width: 480px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 8px; }
-        
         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; background: #252525; }
         th { background: #333; color: #66bb6a; padding: 10px; text-align: left; border: 1px solid #444; }
         td { padding: 8px 10px; border: 1px solid #444; }
-        
         input { width: 100%; padding: 8px; background: #2d2d2d; color: white; border: 1px solid #444; border-radius: 4px; }
-        
-        /* Warna hijau yang lebih redup (muted emerald) */
         .muted-green { color: #81c784; }
         .muted-red { color: #e57373; }
-        
         button { width: 100%; padding: 12px; background: #457b47; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 20px;}
         button:hover { background: #38633a; }
-        
         .result-box { background: #252525; padding: 15px; border-top: 2px solid #457b47; border-radius: 4px; }
-        .status-tag { font-weight: bold; }
-        
         .tp-table { width: 100%; margin-top: 15px; }
         .tp-table td { border: none; border-bottom: 1px solid #333; padding: 6px 0; }
-        
         .warning-text { font-size: 12px; color: #ffa726; font-style: italic; margin-top: 10px; display: block; }
     </style>
 </head>
@@ -39,38 +28,19 @@
     <h3 style="text-align: center; margin-top: 0; color: white; font-size: 16px;">Kalkulator Lot</h3>
     
     <table>
-        <thead>
-            <tr><th colspan="2">PENGATURAN MODAL & RISIKO</th></tr>
-        </thead>
+        <thead><tr><th colspan="2">PENGATURAN MODAL & RISIKO</th></tr></thead>
         <tbody>
-            <tr>
-                <td width="50%">Modal (Rp)</td>
-                <td><input type="text" id="modalDisplay" value="50.000.000" oninput="formatModal(this)"></td>
-            </tr>
-            <tr>
-                <td>Risiko Per Trade (%)</td>
-                <td><input type="number" id="riskPct" step="0.01" value="0.50"></td>
-            </tr>
+            <tr><td width="50%">Modal (Rp)</td><td><input type="text" id="modalDisplay" value="50.000.000" oninput="formatModal(this)"></td></tr>
+            <tr><td>Risiko Per Trade (%)</td><td><input type="number" id="riskPct" step="0.01" value="0.50"></td></tr>
         </tbody>
     </table>
 
     <table>
-        <thead>
-            <tr><th colspan="2">RENCANA ENTRI</th></tr>
-        </thead>
+        <thead><tr><th colspan="2">RENCANA ENTRI</th></tr></thead>
         <tbody>
-            <tr>
-                <td width="50%">Ticker Saham</td>
-                <td><input type="text" id="ticker" placeholder="CONTOH: ACES" oninput="checkTicker()"></td>
-            </tr>
-            <tr>
-                <td>Harga Entri</td>
-                <td><input type="number" id="entry" value="1000"></td>
-            </tr>
-            <tr>
-                <td>Harga Stop Loss</td>
-                <td><input type="number" id="sl" value="950"></td>
-            </tr>
+            <tr><td width="50%">Ticker Saham</td><td><input type="text" id="ticker" placeholder="CONTOH: ACES" oninput="checkTicker()"></td></tr>
+            <tr><td>Harga Entri</td><td><input type="number" id="entry" value="1000" oninput="updateStep(this)" onchange="updateStep(this)"></td></tr>
+            <tr><td>Harga Stop Loss</td><td><input type="number" id="sl" value="950" oninput="updateStep(this)" onchange="updateStep(this)"></td></tr>
         </tbody>
     </table>
 
@@ -79,7 +49,7 @@
     <div id="results" class="result-box" style="display:none;">
         <div style="margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 10px;">
             <span id="resTicker" style="font-weight: bold; text-transform: uppercase;">-</span>
-            <span id="resSharia" class="status-tag"></span>
+            <span id="resSharia" style="font-weight: bold;"></span>
             <div style="color: #bbb; margin-top: 4px;">
                 Entry: <span id="infoEntry"></span> | SL: <span id="infoSL"></span> (<span id="infoRiskPct" class="muted-red"></span>)
             </div>
@@ -94,14 +64,25 @@
         <span class="warning-text">*Peringatan: Estimasi belum termasuk fee beli/jual sekuritas dan pajak.</span>
         
         <div style="font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px; margin-top: 15px;">TARGET PROFIT (REWARD)</div>
-        <table class="tp-table">
-            <tbody id="tpBody">
-                </tbody>
-        </table>
+        <table class="tp-table"><tbody id="tpBody"></tbody></table>
     </div>
 </div>
 
 <script>
+// Logic Fraksi Harga IHSG
+function getIHSGStep(price) {
+    if (price < 200) return 1;
+    if (price < 500) return 2;
+    if (price < 2000) return 5;
+    if (price < 5000) return 10;
+    return 25;
+}
+
+function updateStep(input) {
+    const price = parseFloat(input.value);
+    input.step = getIHSGStep(price);
+}
+
 const shariaStocks = ["AADI", "AALI", "ABMM", "ACES", "ACST", "ADCP", "ADES", "ADHI", "ADMG", "ADMR", "ADRO", "AGAR", "AGII", "AIMS", "AISA", "AKKU", "AKPI", "AKRA", "AKSI", "ALDO", "ALKA", "AMAN", "AMFG", "AMIN", "ANDI", "ANJT", "ANTM", "APII", "APLI", "APLN", "ARCI", "AREA", "ARGO", "ARII", "ARNA", "ARTA", "ASGR", "ASHA", "ASII", "ASLC", "ASLI", "ASPI", "ASRI", "ASSA", "ATAP", "ATIC", "ATLA", "AUTO", "AVIA", "AWAN", "AXIO", "AYAM", "AYLS", "BABY", "BAIK", "BANK", "BAPI", "BATA", "BATR", "BAUT", "BAYU", "BBRM", "BBSS", "BCIP", "BDKR", "BEEF", "BELI", "BELL", "BESS", "BEST", "BIKE", "BINO", "BIPP", "BIRD", "BISI", "BKDP", "BKSL", "BLES", "BLOG", "BLTA", "BLTZ", "BLUE", "BMHS", "BMSR", "BMTR", "BNBR", "BOAT", "BOBA", "BOGA", "BOLA", "BOLT", "BRAM", "BRIS", "BRMS", "BRNA", "BRPT", "BRRC", "BSBK", "BSDE", "BSML", "BSSR", "BTPS", "BUAH", "BUKK", "BULL", "BUMI", "BUVA", "BYAN", "CAKK", "CAMP", "CANI", "CARE", "CASS", "CBDK", "CBPE", "CBRE", "CCSI", "CEKA", "CGAS", "CHEK", "CHEM", "CINT", "CITA", "CITY", "CLEO", "CLPI", "CMNP", "CMPP", "CMRY", "CNKO", "CNMA", "COAL", "CPIN", "CPRO", "CRAB", "CRSN", "CSAP", "CSIS", "CSMI", "CSRA", "CTBN", "CTRA", "CYBR", "DAAZ", "DADA", "DATA", "DAYA", "DCII", "DEFI", "DEPO", "DEWA", "DEWI", "DGIK", "DGNS", "DGWG", "DILD", "DIVA", "DKFT", "DKHH", "DMAS", "DMMX", "DMND", "DOOH", "DOSS", "DRMA", "DSFI", "DSNG", "DSSA", "DUTI", "DVLA", "DWGL", "DYAN", "EAST", "ECII", "EDGE", "EKAD", "ELIT", "ELPI", "ELSA", "ELTY", "EMDE", "ENAK", "ENRG", "EPAC", "EPMT", "ERAA", "ERAL", "ESIP", "ESSA", "ESTA", "EXCL", "FAST", "FASW", "FILM", "FIRE", "FISH", "FITT", "FMII", "FOLK", "FOOD", "FORE", "FPNI", "FUTR", "FWCT", "GDST", "GDYR", "GEMA", "GEMS", "GGRP", "GHON", "GIAA", "GJTL", "GLVA", "GMTD", "GOLD", "GOLF", "GOOD", "GPRA", "GPSO", "GRIA", "GRPH", "GTBO", "GTRA", "GTSI", "GULA", "GUNA", "GWSA", "GZCO", "HADE", "HAIS", "HALO", "HATM", "HDIT", "HEAL", "HERO", "HEXA", "HGII", "HITS", "HOKI", "HOMI", "HOPE", "HRME", "HRUM", "HUMI", "HYGN", "IATA", "IBST", "ICBP", "ICON", "IDPR", "IFII", "IFSH", "IGAR", "IIKP", "IKAI", "IKAN", "IKBI", "IKPM", "IMPC", "INCI", "INCO", "INDF", "INDR", "INDS", "INDX", "INDY", "INET", "INKP", "INPP", "INTD", "INTP", "IOTF", "IPCC", "IPCM", "IPOL", "IPTV", "IRRA", "IRSX", "ISAT", "ISSP", "ITMA", "ITMG", "JAST", "JATI", "JAWA", "JAYA", "JECC", "JGLE", "JIHD", "JKON", "JMAS", "JPFA", "JRPT", "JSMR", "JSPT", "JTPE", "KAQI", "KARW", "KBAG", "KBLI", "KBLM", "KDSI", "KDTN", "KEEN", "KEJU", "KETR", "KIAS", "KICI", "KIJA", "KINO", "KIOS", "KJEN", "KKES", "KKGI", "KLAS", "KLBF", "KMDS", "KOBX", "KOCI", "KOIN", "KOKA", "KONI", "KOPI", "KOTA", "KPIG", "KREN", "KRYA", "KSIX", "KUAS", "LABA", "LABS", "LAJU", "LAND", "LCKM", "LION", "LIVE", "LMPI", "LMSH", "LPCK", "LPIN", "LPKR", "LPLI", "LPPF", "LRNA", "LSIP", "LTLS", "LUCK", "MAHA", "MAIN", "MAPA", "MAPB", "MAPI", "MARK", "MAXI", "MBAP", "MBMA", "MBTO", "MCAS", "MCOL", "MDIY", "MDKA", "MDKI", "MDLA", "MEDC", "MEDS", "MERI", "MERK", "META", "MFMI", "MGNA", "MHKI", "MICE", "MIDI", "MIKA", "MINA", "MINE", "MIRA", "MITI", "MKAP", "MKPI", "MKTR", "MLIA", "MLPL", "MLPT", "MMIX", "MMLP", "MNCN", "MORA", "MPIX", "MPMX", "MPOW", "MPPA", "MPRO", "MRAT", "MSIN", "MSJA", "MSKY", "MSTI", "MTDL", "MTEL", "MTFN", "MTLA", "MTMH", "MTPS", "MTSM", "MUTU", "MYOH", "MYOR", "NAIK", "NASA", "NASI", "NCKL", "NELY", "NEST", "NETV", "NFCX", "NICE", "NICL", "NIKL", "NPGF", "NRCA", "NTBK", "NZIA", "OASA", "OBAT", "OBMD", "OILS", "OKAS", "OMED", "OMRE", "PADA", "PALM", "PAMG", "PANI", "PANR", "PART", "PBID", "PBSA", "PCAR", "PDES", "PDPP", "PEHA", "PEVE", "PGAS", "PGEO", "PGLI", "PGUN", "PICO", "PIPA", "PJAA", "PJHB", "PKPK", "PLIN", "PMJS", "PMUI", "PNBS", "PNGO", "PNSE", "POLI", "POLU", "PORT", "POWR", "PPRE", "PPRI", "PPRO", "PRAY", "PRDA", "PRIM", "PSAB", "PSAT", "PSDN", "PSGO", "PSKT", "PSSI", "PTBA", "PTIS", "PTMP", "PTMR", "PTPP", "PTPS", "PTPW", "PTSN", "PTSP", "PURA", "PURI", "PWON", "PZZA", "RAAM", "RAFI", "RAJA", "RALS", "RANC", "RATU", "RBMS", "RDTX", "RGAS", "RIGS", "RISE", "RMKE", "RMKO", "ROCK", "RODA", "RONY", "ROTI", "RSGK", "RUIS", "SAFE", "SAGE", "SAME", "SAMF", "SAPX", "SATU", "SBMA", "SCCO", "SCNP", "SCPI", "SEMA", "SGER", "SGRO", "SHID", "SHIP", "SICO", "SIDO", "SILO", "SIMP", "SIPD", "SKBM", "SKLT", "SKRN", "SLIS", "SMAR", "SMBR", "SMCB", "SMDM", "SMDR", "SMGA", "SMGR", "SMIL", "SMKL", "SMLE", "SMMT", "SMRA", "SMSM", "SNLK", "SOCI", "SOHO", "SOLA", "SONA", "SOSS", "SOTS", "SPMA", "SPTO", "SRTG", "SSIA", "SSTM", "STAA", "STTP", "SULI", "SUNI", "SUPR", "SURI", "SWID", "TALF", "TAMA", "TAMU", "TAPG", "TARA", "TAXI", "TBMS", "TCID", "TCPI", "TEBE", "TFAS", "TFCO", "TGKA", "TGUK", "TINS", "TIRA", "TIRT", "TKIM", "TLDN", "TLKM", "TMAS", "TMPO", "TNCA", "TOBA", "TOOL", "TOSK", "TOTL", "TOTO", "TPIA", "TPMA", "TRIS", "TRJA", "TRON", "TRST", "TRUE", "TRUK", "TSPC", "TYRE", "UANG", "UCID", "UFOE", "ULTJ", "UNIC", "UNIQ", "UNTR", "UNVR", "UVCR", "VAST", "VERN", "VICI", "VISI", "VKTR", "VOKS", "WAPO", "WEGE", "WEHA", "WINR", "WINS", "WIRG", "WMUU", "WOOD", "WOWS", "WTON", "YELO", "YPAS", "YUPI", "ZATA", "ZONE", "ZYRX"];
 
 function formatModal(input) {
@@ -117,10 +98,10 @@ function checkTicker() {
     if (!ticker) { shariaSpan.innerText = ""; return; }
     if (shariaStocks.includes(ticker)) {
         shariaSpan.innerText = " (✓ Syariah/ISSI)";
-        shariaSpan.className = "status-tag muted-green";
+        shariaSpan.className = "muted-green";
     } else {
         shariaSpan.innerText = " (✗ Non-ISSI/Non-Syariah)";
-        shariaSpan.className = "status-tag muted-red";
+        shariaSpan.className = "muted-red";
     }
 }
 
@@ -132,11 +113,8 @@ function calculate() {
     const sl = parseFloat(document.getElementById('sl').value);
 
     if (!modal || !entry || !sl) { alert("Data belum lengkap"); return; }
-    
     const riskAmount = modal * riskPct;
     const riskPerShare = entry - sl;
-    const slPct = ((riskPerShare / entry) * 100).toFixed(2);
-
     if (riskPerShare <= 0) { alert("Stop Loss harus di bawah Entry"); return; }
 
     const totalLot = Math.floor((riskAmount / riskPerShare) / 100);
@@ -144,29 +122,26 @@ function calculate() {
 
     document.getElementById('infoEntry').innerText = entry.toLocaleString('id-ID');
     document.getElementById('infoSL').innerText = sl.toLocaleString('id-ID');
-    document.getElementById('infoRiskPct').innerText = slPct + "%";
-
+    document.getElementById('infoRiskPct').innerText = ((riskPerShare / entry) * 100).toFixed(2) + "%";
     document.getElementById('resLot').innerText = totalLot.toLocaleString('id-ID');
     document.getElementById('resValue').innerText = "Rp " + totalValue.toLocaleString('id-ID');
     document.getElementById('resRisk').innerText = "Rp " + (totalLot * 100 * riskPerShare).toLocaleString('id-ID');
     
     let tpHtml = "";
     for(let r=1; r<=6; r++) {
-        const tpPrice = entry + (riskPerShare * r);
-        const tpPct = (((tpPrice - entry) / entry) * 100).toFixed(2);
-        const tpProfitRupiah = totalLot * 100 * (riskPerShare * r);
-        
-        tpHtml += `<tr>
-            <td width="40%">TP ${r}R (Reward ${r}:1)</td>
-            <td style="text-align: right;">
-                <strong>${tpPrice.toLocaleString('id-ID')}</strong> <span class="muted-green">(+${tpPct}%)</span><br>
-                <span style="font-size: 11px; color: #aaa;">Est. Profit: Rp ${tpProfitRupiah.toLocaleString('id-ID')}</span>
-            </td>
-        </tr>`;
+        const targetPrice = entry + (riskPerShare * r);
+        const tpProfit = totalLot * 100 * (riskPerShare * r);
+        tpHtml += `<tr><td width="40%">TP ${r}R (Reward ${r}:1)</td><td style="text-align: right;"><strong>${targetPrice.toLocaleString('id-ID')}</strong> <span class="muted-green">(+${(((targetPrice-entry)/entry)*100).toFixed(2)}%)</span><br><span style="font-size: 11px; color: #aaa;">Est. Profit: Rp ${tpProfit.toLocaleString('id-ID')}</span></td></tr>`;
     }
     document.getElementById('tpBody').innerHTML = tpHtml;
     document.getElementById('results').style.display = 'block';
 }
+
+// Set initial step
+document.addEventListener('DOMContentLoaded', () => {
+    updateStep(document.getElementById('entry'));
+    updateStep(document.getElementById('sl'));
+});
 </script>
 </body>
 </html>
