@@ -31,9 +31,9 @@
     <table>
         <thead><tr><th colspan="2">PENGATURAN MODAL & RISIKO</th></tr></thead>
         <tbody>
-            <tr><td width="50%">Modal (Rp)</td><td><input type="text" id="modalDisplay" value="50.000.000" oninput="formatModal(this); updateNominalRisk();"></td></tr>
-            <tr><td>Risiko Per Trade (%)</td><td><input type="number" id="riskPct" step="0.01" value="0.50" oninput="updateNominalRisk();"></td></tr>
-            <tr><td>Est. Risiko (Rp)</td><td id="nominalRiskDisplay" class="muted-red">Rp 250.000</td></tr>
+            <tr><td width="50%">Modal (Rp)</td><td><input type="text" id="modalDisplay" placeholder="Contoh: 50.000.000" oninput="formatModal(this); saveSettings();"></td></tr>
+            <tr><td>Risiko Per Trade (%)</td><td><input type="number" id="riskPct" step="0.01" placeholder="0.50" oninput="saveSettings();"></td></tr>
+            <tr><td>Est. Risiko (Rp)</td><td id="nominalRiskDisplay" class="muted-red">Rp 0</td></tr>
         </tbody>
     </table>
 
@@ -78,22 +78,49 @@
 </div>
 
 <script>
+// Fungsi Simpan ke Local Storage
+function saveSettings() {
+    const modal = document.getElementById('modalDisplay').value;
+    const risk = document.getElementById('riskPct').value;
+    localStorage.setItem('userModal', modal);
+    localStorage.setItem('userRisk', risk);
+    updateNominalRisk();
+}
+
+// Fungsi Load dari Local Storage
+function loadSettings() {
+    const savedModal = localStorage.getItem('userModal');
+    const savedRisk = localStorage.getItem('userRisk');
+    
+    if (savedModal) document.getElementById('modalDisplay').value = savedModal;
+    else document.getElementById('modalDisplay').value = "50.000.000"; // Default
+    
+    if (savedRisk) document.getElementById('riskPct').value = savedRisk;
+    else document.getElementById('riskPct').value = "0.50"; // Default
+    
+    updateNominalRisk();
+}
+
 function getIHSGStep(p) {
     if (p < 200) return 1; if (p < 500) return 2; if (p < 2000) return 5; if (p < 5000) return 10; return 25;
 }
-function updateStep(input) { input.step = getIHSGStep(parseFloat(input.value)); }
+
+function updateStep(input) { 
+    input.step = getIHSGStep(parseFloat(input.value)); 
+}
+
 function formatModal(input) {
     let v = input.value.replace(/\D/g, "");
     input.value = v.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
+
 function updateNominalRisk() {
     const m = parseFloat(document.getElementById('modalDisplay').value.replace(/\./g, "")) || 0;
     const r = parseFloat(document.getElementById('riskPct').value) || 0;
     document.getElementById('nominalRiskDisplay').innerText = "Rp " + Math.floor(m * (r / 100)).toLocaleString('id-ID');
 }
 
-// Data Saham Syariah (ISSI)
-const shariaStocks = ["AADI", "AALI", "ABMM", "ACES", "ACST", "ADCP", "ADES", "ADHI", "ADMG", "ADMR", "ADRO", "AGAR", "AGII", "AIMS", "AISA", "AKKU", "AKPI", "AKRA", "AKSI", "ALDO", "ALKA", "AMAN", "AMFG", "AMIN", "ANDI", "ANJT", "ANTM", "APII", "APLI", "APLN", "ARCI", "AREA", "ARGO", "ARII", "ARNA", "ARTA", "ASGR", "ASHA", "ASII", "ASLC", "ASLI", "ASPI", "ASRI", "ASSA", "ATAP", "ATIC", "ATLA", "AUTO", "AVIA", "AWAN", "AXIO", "AYAM", "AYLS", "BABY", "BAIK", "BANK", "BAPI", "BATA", "BATR", "BAUT", "BAYU", "BBRM", "BBSS", "BCIP", "BDKR", "BEEF", "BELI", "BELL", "BESS", "BEST", "BIKE", "BINO", "BIPP", "BIRD", "BISI", "BKDP", "BKSL", "BLES", "BLOG", "BLTA", "BLTZ", "BLUE", "BMHS", "BMSR", "BMTR", "BNBR", "BOAT", "BOBA", "BOGA", "BOLA", "BOLT", "BRAM", "BRIS", "BRMS", "BRNA", "BRPT", "BRRC", "BSBK", "BSDE", "BSML", "BSSR", "BTPS", "BUAH", "BUKK", "BULL", "BUMI", "BUVA", "BYAN", "CAKK", "CAMP", "CANI", "CARE", "CASS", "CBDK", "CBPE", "CBRE", "CCSI", "CEKA", "CGAS", "CHEK", "CHEM", "CINT", "CITA", "CITY", "CLEO", "CLPI", "CMNP", "CMPP", "CMRY", "CNKO", "CNMA", "COAL", "CPIN", "CPRO", "CRAB", "CRSN", "CSAP", "CSIS", "CSMI", "CSRA", "CTBN", "CTRA", "CYBR", "DAAZ", "DADA", "DATA", "DAYA", "DCII", "DEFI", "DEPO", "DEWA", "DEWI", "DGIK", "DGNS", "DGWG", "DILD", "DIVA", "DKFT", "DKHH", "DMAS", "DMMX", "DMND", "DOOH", "DOSS", "DRMA", "DSFI", "DSNG", "DSSA", "DUTI", "DVLA", "DWGL", "DYAN", "EAST", "ECII", "EDGE", "EKAD", "ELIT", "ELPI", "ELSA", "ELTY", "EMDE", "ENAK", "ENRG", "EPAC", "EPMT", "ERAA", "ERAL", "ESIP", "ESSA", "ESTA", "EXCL", "FAST", "FASW", "FILM", "FIRE", "FISH", "FITT", "FMII", "FOLK", "FOOD", "FORE", "FPNI", "FUTR", "FWCT", "GDST", "GDYR", "GEMA", "GEMS", "GGRP", "GHON", "GIAA", "GJTL", "GLVA", "GMTD", "GOLD", "GOLF", "GOOD", "GPRA", "GPSO", "GRIA", "GRPH", "GTBO", "GTRA", "GTSI", "GULA", "GUNA", "GWSA", "GZCO", "HADE", "HAIS", "HALO", "HATM", "HDIT", "HEAL", "HERO", "HEXA", "HGII", "HITS", "HOKI", "HOMI", "HOPE", "HRME", "HRUM", "HUMI", "HYGN", "IATA", "IBST", "ICBP", "ICON", "IDPR", "IFII", "IFSH", "IGAR", "IIKP", "IKAI", "IKAN", "IKBI", "IKPM", "IMPC", "INCI", "INCO", "INDF", "INDR", "INDS", "INDX", "INDY", "INET", "INKP", "INPP", "INTD", "INTP", "IOTF", "IPCC", "IPCM", "IPOL", "IPTV", "IRRA", "IRSX", "ISAT", "ISSP", "ITMA", "ITMG", "JAST", "JATI", "JAWA", "JAYA", "JECC", "JGLE", "JIHD", "JKON", "JMAS", "JPFA", "JRPT", "JSMR", "JSPT", "JTPE", "KAQI", "KARW", "KBAG", "KBLI", "KBLM", "KDSI", "KDTN", "KEEN", "KEJU", "KETR", "KIAS", "KICI", "KIJA", "KINO", "KIOS", "KJEN", "KKES", "KKGI", "KLAS", "KLBF", "KMDS", "KOBX", "KOCI", "KOIN", "KOKA", "KONI", "KOPI", "KOTA", "KPIG", "KREN", "KRYA", "KSIX", "KUAS", "LABA", "LABS", "LAJU", "LAND", "LCKM", "LION", "LIVE", "LMPI", "LMSH", "LPCK", "LPIN", "LPKR", "LPLI", "LPPF", "LRNA", "LSIP", "LTLS", "LUCK", "MAHA", "MAIN", "MAPA", "MAPB", "MAPI", "MARK", "MAXI", "MBAP", "MBMA", "MBTO", "MCAS", "MCOL", "MDIY", "MDKA", "MDKI", "MDLA", "MEDC", "MEDS", "MERI", "MERK", "META", "MFMI", "MGNA", "MHKI", "MICE", "MIDI", "MIKA", "MINA", "MINE", "MIRA", "MITI", "MKAP", "MKPI", "MKTR", "MLIA", "MLPL", "MLPT", "MMIX", "MMLP", "MNCN", "MORA", "MPIX", "MPMX", "MPOW", "MPPA", "MPRO", "MRAT", "MSIN", "MSJA", "MSKY", "MSTI", "MTDL", "MTEL", "MTFN", "MTLA", "MTMH", "MTPS", "MTSM", "MUTU", "MYOH", "MYOR", "NAIK", "NASA", "NASI", "NCKL", "NELY", "NEST", "NETV", "NFCX", "NICE", "NICL", "NIKL", "NPGF", "NRCA", "NTBK", "NZIA", "OASA", "OBAT", "OBMD", "OILS", "OKAS", "OMED", "OMRE", "PADA", "PALM", "PAMG", "PANI", "PANR", "PART", "PBID", "PBSA", "PCAR", "PDES", "PDPP", "PEHA", "PEVE", "PGAS", "PGEO", "PGLI", "PGUN", "PICO", "PIPA", "PJAA", "PJHB", "PKPK", "PLIN", "PMJS", "PMUI", "PNBS", "PNGO", "PNSE", "POLI", "POLU", "PORT", "POWR", "PPRE", "PPRI", "PPRO", "PRAY", "PRDA", "PRIM", "PSAB", "PSAT", "PSDN", "PSGO", "PSKT", "PSSI", "PTBA", "PTIS", "PTMP", "PTMR", "PTPP", "PTPS", "PTPW", "PTSN", "PTSP", "PURA", "PURI", "PWON", "PZZA", "RAAM", "RAFI", "RAJA", "RALS", "RANC", "RATU", "RBMS", "RDTX", "RGAS", "RIGS", "RISE", "RMKE", "RMKO", "ROCK", "RODA", "RONY", "ROTI", "RSGK", "RUIS", "SAFE", "SAGE", "SAME", "SAMF", "SAPX", "SATU", "SBMA", "SCCO", "SCNP", "SCPI", "SEMA", "SGER", "SGRO", "SHID", "SHIP", "SICO", "SIDO", "SILO", "SIMP", "SIPD", "SKBM", "SKLT", "SKRN", "SLIS", "SMAR", "SMBR", "SMCB", "SMDM", "SMDR", "SMGA", "SMGR", "SMIL", "SMKL", "SMLE", "SMMT", "SMRA", "SMSM", "SNLK", "SOCI", "SOHO", "SOLA", "SONA", "SOSS", "SOTS", "SPMA", "SPTO", "SRTG", "SSIA", "SSTM", "STAA", "STTP", "SULI", "SUNI", "SUPR", "SURI", "SWID", "TALF", "TAMA", "TAMU", "TAPG", "TARA", "TAXI", "TBMS", "TCID", "TCPI", "TEBE", "TFAS", "TFCO", "TGKA", "TGUK", "TINS", "TIRA", "TIRT", "TKIM", "TLDN", "TLKM", "TMAS", "TMPO", "TNCA", "TOBA", "TOOL", "TOSK", "TOTL", "TOTO", "TPIA", "TPMA", "TRIS", "TRJA", "TRON", "TRST", "TRUE", "TRUK", "TSPC", "TYRE", "UANG", "UCID", "UFOE", "ULTJ", "UNIC", "UNIQ", "UNTR", "UNVR", "UVCR", "VAST", "VERN", "VICI", "VISI", "VKTR", "VOKS", "WAPO", "WEGE", "WEHA", "WINR", "WINS", "WIRG", "WMUU", "WOOD", "WOWS", "WTON", "YELO", "YPAS", "YUPI", "ZATA", "ZONE", "ZYRX"];
+const shariaStocks = ["AADI", "AALI", "ABMM", "ACES", "ACST", "ADCP", "ADES", "ADHI", "ADMG", "ADMR", "ADRO", "AGAR", "AGII", "AIMS", "AISA", "AKKU", "AKPI", "AKRA", "AKSI", "ALDO", "ALKA", "AMAN", "AMFG", "AMIN", "ANDI", "ANJT", "ANTM", "APII", "APLI", "APLN", "ARCI", "AREA", "ARGO", "ARII", "ARNA", "ARTA", "ASGR", "ASHA", "ASII", "ASLC", "ASLI", "ASPI", "ASRI", "ASSA", "ATAP", "ATIC", "ATLA", "AUTO", "AVIA", "AWAN", "AXIO", "AYAM", "AYLS", "BABY", "BAIK", "BANK", "BAPI", "BATA", "BATR", "BAUT", "BAYU", "BBRM", "BBSS", "BCIP", "BDKR", "BEEF", "BELI", "BELL", "BESS", "BEST", "BIKE", "BINO", "BIPP", "BIRD", "BISI", "BKDP", "BKSL", "BLES", "BLOG", "BLTA", "BLTZ", "BLUE", "BMHS", "BMSR", "BMTR", "BNBR", "BOAT", "BOBA", "BOGA", "BOLA", "BOLT", "BRAM", "BRIS", "BRMS", "BRNA", "BRPT", "BRRC", "BSBK", "BSDE", "BSML", "BSSR", "BTPS", "BUAH", "BUKK", "BULL", "BUMI", "BUVA", "BYAN", "CAKK", "CAMP", "CANI", "CARE", "CASS", "CBDK", "CBPE", "CBRE", "CCSI", "CEKA", "CGAS", "CHEK", "CHEM", "CINT", "CITA", "CITY", "CLEO", "CLPI", "CMNP", "CMPP", "CMRY", "CNKO", "CNMA", "COAL", "CPIN", "CPRO", "CRAB", "CRSN", "CSAP", "CSIS", "CSMI", "CSRA", "CTBN", "CTRA", "CYBR", "DAAZ", "DADA", "DATA", "DAYA", "DCII", "DEFI", "DEPO", "DEWA", "DEWI", "DGIK", "DGNS", "DGWG", "DILD", "DIVA", "DKFT", "DKHH", "DMAS", "DMMX", "DMND", "DOOH", "DOSS", "DRMA", "DSFI", "DSNG", "DSSA", "DUTI", "DVLA", "DWGL", "DYAN", "EAST", "ECII", "EDGE", "EKAD", "ELIT", "ELPI", "ELSA", "ELTY", "EMDE", "ENAK", "ENRG", "EPAC", "EPMT", "ERAA", "ERAL", "ESIP", "ESSA", "ESTA", "EXCL", "FAST", "FASW", "FILM", "FIRE", "FISH", "FITT", "FMII", "FOLK", "FOOD", "FORE", "FPNI", "FUTR", "FWCT", "GDST", "GDYR", "GEMA", "GEMS", "GGRP", "GHON", "GIAA", "GJTL", "GLVA", "GMTD", "GOLD", "GOLF", "GOOD", "GPRA", "GPSO", "GRIA", "GRPH", "GTBO", "GTRA", "GTSI", "GULA", "GUNA", "GWSA", "GZCO", "HADE", "HAIS", "HALO", "HATM", "HDIT", "HEAL", "HERO", "HEXA", "HGII", "HITS", "HOKI", "HOMI", "HOPE", "HRME", "HRUM", "HUMI", "HYGN", "IATA", "IBST", "ICBP", "ICON", "IDPR", "IFII", "IFSH", "IGAR", "IIKP", "IKAI", "IKAN", "IKBI", "IKPM", "IMPC", "INCI", "INCO", "INDF", "INDR", "INDS", "INDX", "INDY", "INET", "INKP", "INPP", "INTD", "INTP", "IOTF", "IPCC", "IPCM", "IPOL", "IPTV", "IRRA", "IRSX", "ISAT", "ISSP", "ITMA", "ITMG", "JAST", "JATI", "JAWA", "JAYA", "JECC", "JGLE", "JIHD", "JKON", "JMAS", "JPFA", "JRPT", "JSMR", "JSPT", "JTPE", "KAQI", "KARW", "KBAG", "KBLI", "KBLM", "KDSI", "KDTN", "KEEN", "KEJU", "KETR", "KIAS", "KICI", "KIJA", "KINO", "KIOS", "KJEN", "KKES", "KKGI", "KLAS", "KLBF", "KMDS", "KOBX", "KOCI", "KOIN", "KOKA", "KONI", "KOPI", "KOTA", "KPIG", "KREN", "KRYA", "KSIX", "KUAS", "LABA", "LABS", "LAJU", "LAND", "LCKM", "LION", "LIVE", "LMPI", "LMSH", "LPCK", "LPIN", "LPKR", "LPLI", "LPPF", "LRNA", "LSIP", "LTLS", "LUCK", "MAHA", "MAIN", "MAPA", "MAPB", "MAPI", "MARK", "MAXI", "MBAP", "MBMA", "MBTO", "MCAS", "MCOL", "MDIY", "MDKA", "MDKI", "MDLA", "MEDC", "MEDS", "MERI", "MERK", "META", "MFMI", "MGNA", "MHKI", "MICE", "MIDI", "MIKA", "MINA", "MINE", "MIRA", "MITI", "MKAP", "MKPI", "MKTR", "MLIA", "MLPL", "MLPT", "MMIX", "MMLP", "MNCN", "Mora", "MPIX", "MPMX", "MPOW", "MPPA", "MPRO", "MRAT", "MSIN", "MSJA", "MSKY", "MSTI", "MTDL", "MTEL", "MTFN", "MTLA", "MTMH", "MTPS", "MTSM", "MUTU", "MYOH", "MYOR", "NAIK", "NASA", "NASI", "NCKL", "NELY", "NEST", "NETV", "NFCX", "NICE", "NICL", "NIKL", "NPGF", "NRCA", "NTBK", "NZIA", "OASA", "OBAT", "OBMD", "OILS", "OKAS", "OMED", "OMRE", "PADA", "PALM", "PAMG", "PANI", "PANR", "PART", "PBID", "PBSA", "PCAR", "PDES", "PDPP", "PEHA", "PEVE", "PGAS", "PGEO", "PGLI", "PGUN", "PICO", "PIPA", "PJAA", "PJHB", "PKPK", "PLIN", "PMJS", "PMUI", "PNBS", "PNGO", "PNSE", "POLI", "POLU", "PORT", "POWR", "PPRE", "PPRI", "PPRO", "PRAY", "PRDA", "PRIM", "PSAB", "PSAT", "PSDN", "PSGO", "PSKT", "PSSI", "PTBA", "PTIS", "PTMP", "PTMR", "PTPP", "PTPS", "PTPW", "PTSN", "PTSP", "PURA", "PURI", "PWON", "PZZA", "RAAM", "RAFI", "RAJA", "RALS", "RANC", "RATU", "RBMS", "RDTX", "RGAS", "RIGS", "RISE", "RMKE", "RMKO", "ROCK", "RODA", "RONY", "ROTI", "RSGK", "RUIS", "SAFE", "SAGE", "SAME", "SAMF", "SAPX", "SATU", "SBMA", "SCCO", "SCNP", "SCPI", "SEMA", "SGER", "SGRO", "SHID", "SHIP", "SICO", "SIDO", "SILO", "SIMP", "SIPD", "SKBM", "SKLT", "SKRN", "SLIS", "SMAR", "SMBR", "SMCB", "SMDM", "SMDR", "SMGA", "SMGR", "SMIL", "SMKL", "SMLE", "SMMT", "SMRA", "SMSM", "SNLK", "SOCI", "SOHO", "SOLA", "SONA", "SOSS", "SOTS", "SPMA", "SPTO", "SRTG", "SSIA", "SSTM", "STAA", "STTP", "SULI", "SUNI", "SUPR", "SURI", "SWID", "TALF", "TAMA", "TAMU", "TAPG", "TARA", "TAXI", "TBMS", "TCID", "TCPI", "TEBE", "TFAS", "TFCO", "TGKA", "TGUK", "TINS", "TIRA", "TIRT", "TKIM", "TLDN", "TLKM", "TMAS", "TMPO", "TNCA", "TOBA", "TOOL", "TOSK", "TOTL", "TOTO", "TPIA", "TPMA", "TRIS", "TRJA", "TRON", "TRST", "TRUE", "TRUK", "TSPC", "TYRE", "UANG", "UCID", "UFOE", "ULTJ", "UNIC", "UNIQ", "UNTR", "UNVR", "UVCR", "VAST", "VERN", "VICI", "VISI", "VKTR", "VOKS", "WAPO", "WEGE", "WEHA", "WINR", "WINS", "WIRG", "WMUU", "WOOD", "WOWS", "WTON", "YELO", "YPAS", "YUPI", "ZATA", "ZONE", "ZYRX"];
 
 function checkTicker() {
     const t = document.getElementById('ticker').value.toUpperCase();
@@ -143,7 +170,12 @@ function calculate() {
     document.getElementById('results').style.display = 'block';
 }
 
-document.addEventListener('DOMContentLoaded', () => { updateNominalRisk(); });
+// Inisialisasi saat halaman dimuat
+document.addEventListener('DOMContentLoaded', () => { 
+    loadSettings();
+    updateStep(document.getElementById('entry'));
+    updateStep(document.getElementById('sl'));
+});
 </script>
 </body>
 </html>
