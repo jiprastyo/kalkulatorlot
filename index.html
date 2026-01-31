@@ -7,7 +7,7 @@
     <title>Kalkulator Lot</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.57.0/build/stlite.css" />
     <style>
-      /* CSS untuk menyembunyikan spinner/panah standar browser di input angka */
+      /* CSS untuk menyembunyikan spinner/panah input angka */
       input[type=number]::-webkit-inner-spin-button, 
       input[type=number]::-webkit-outer-spin-button { 
         -webkit-appearance: none; 
@@ -24,7 +24,8 @@
     <script>
       stlite.mount(
         {
-          requirements: ["pandas"], // feedparser DIHAPUS
+          // PERHATIKAN: HANYA PANDAS, JANGAN ADA FEEDPARSER
+          requirements: ["pandas"], 
           entrypoint: "app.py",
           files: {
             "app.py": `
@@ -33,38 +34,33 @@ import pandas as pd
 import xml.etree.ElementTree as ET
 from pyodide.http import open_url
 
-# --- Fungsi Utility ---
+# --- Fungsi Simpan Setting ---
 def save_settings(equity, risk):
     st.session_state['saved_equity'] = equity
     st.session_state['saved_risk'] = risk
 
-# Inisialisasi State
 if 'saved_equity' not in st.session_state:
     st.session_state['saved_equity'] = 10000000.0
 if 'saved_risk' not in st.session_state:
     st.session_state['saved_risk'] = 1.0
 
-# --- Layout Aplikasi ---
+# --- Layout ---
 st.title("Kalkulator Lot")
 
 col1, col2 = st.columns(2)
-
 with col1:
     equity = st.number_input("Total Modal (IDR)", 
                              value=float(st.session_state['saved_equity']), 
-                             step=100000.0, 
-                             format="%.0f")
+                             step=100000.0, format="%.0f")
     ticker = st.text_input("Kode Saham (Contoh: MINA)", value="").upper()
 
 with col2:
     risk_pct = st.number_input("Risk per Trade (%)", 
                                value=float(st.session_state['saved_risk']), 
-                               step=0.1, 
-                               format="%.1f")
-    
+                               step=0.1, format="%.1f")
     if st.button("💾 Simpan Modal & Risiko"):
         save_settings(equity, risk_pct)
-        st.toast("Disimpan sementara di sesi ini!")
+        st.toast("Disimpan sementara!")
 
 st.divider()
 
@@ -84,60 +80,51 @@ if risk_per_share > 0:
     total_investment = total_lots * 100 * price
     
     st.subheader("Hasil Analisis")
-    res1, res2, res3 = st.columns(3)
-    res1.metric("Max Risk", f"Rp {risk_amount:,.0f}")
-    res2.metric("Jumlah Lot", f"{total_lots} Lot")
-    res3.metric("Total Beli", f"Rp {total_investment:,.0f}")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Max Risk", f"Rp {risk_amount:,.0f}")
+    c2.metric("Jumlah Lot", f"{total_lots} Lot")
+    c3.metric("Total Beli", f"Rp {total_investment:,.0f}")
 else:
-    st.error("Harga Stop Loss harus lebih rendah dari Harga Beli.")
+    st.error("Stop Loss harus di bawah harga beli!")
 
 st.divider()
 
-# --- Fitur Berita (Menggunakan XML Parsing Standard) ---
+# --- Fitur Berita (Tanpa Feedparser) ---
 if ticker:
-    st.subheader(f"10 Berita Terbaru: {ticker}")
+    st.subheader(f"Berita: {ticker}")
     try:
-        # URL RSS Google News
+        # RSS Google News
         rss_url = f"https://news.google.com/rss/search?q={ticker}+stock+indonesia&hl=id&gl=ID&ceid=ID:id"
         
-        # Fetch menggunakan pyodide.http (Aman untuk browser)
-        response_content = open_url(rss_url).read()
+        # Ambil data
+        content = open_url(rss_url).read()
+        root = ET.fromstring(content)
         
-        # Parsing XML manual tanpa feedparser
-        root = ET.fromstring(response_content)
-        
-        news_data = []
-        # Loop cari item berita
+        news_list = []
         for item in root.findall(".//item")[:10]:
-            title = item.find("title").text if item.find("title") is not None else "No Title"
-            link = item.find("link").text if item.find("link") is not None else "#"
-            pubDate = item.find("pubDate").text if item.find("pubDate") is not None else ""
+            title = item.find("title").text
+            link = item.find("link").text
+            pubDate = item.find("pubDate").text
             
-            # Format tanggal sederhana
-            date_display = pubDate[:16] if len(pubDate) > 16 else pubDate
-            
-            news_data.append({
-                "Tanggal": date_display,
+            news_list.append({
+                "Waktu": pubDate[:16],
                 "Judul": title,
                 "Link": link
             })
-        
-        if news_data:
-            # Tampilkan sebagai Dataframe dengan Column Config untuk Link
-            df_news = pd.DataFrame(news_data)
+            
+        if news_list:
+            df = pd.DataFrame(news_list)
             st.dataframe(
-                df_news,
-                column_config={
-                    "Link": st.column_config.LinkColumn("Baca Berita")
-                },
+                df,
+                column_config={"Link": st.column_config.LinkColumn("Baca")},
                 hide_index=True,
                 use_container_width=True
             )
         else:
-            st.warning("Tidak ada berita ditemukan.")
+            st.info("Tidak ada berita ditemukan.")
             
     except Exception as e:
-        st.error(f"Gagal mengambil berita. Pastikan koneksi internet stabil. Error: {e}")
+        st.error(f"Gagal memuat berita: {e}")
             `,
           },
         },
