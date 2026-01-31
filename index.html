@@ -24,63 +24,57 @@
     <script>
       stlite.mount(
         {
-          requirements: ["pandas", "feedparser"], 
+          requirements: ["pandas"], // feedparser DIHAPUS
           entrypoint: "app.py",
           files: {
             "app.py": `
 import streamlit as st
 import pandas as pd
-import feedparser
+import xml.etree.ElementTree as ET
+from pyodide.http import open_url
 
-# Fungsi untuk menyimpan ke browser storage via stlite
+# --- Fungsi Utility ---
 def save_settings(equity, risk):
     st.session_state['saved_equity'] = equity
     st.session_state['saved_risk'] = risk
 
-# Inisialisasi data tersimpan (Default jika kosong)
+# Inisialisasi State
 if 'saved_equity' not in st.session_state:
     st.session_state['saved_equity'] = 10000000.0
 if 'saved_risk' not in st.session_state:
     st.session_state['saved_risk'] = 1.0
 
+# --- Layout Aplikasi ---
 st.title("Kalkulator Lot")
 
-# Layout Utama
 col1, col2 = st.columns(2)
 
 with col1:
-    # Field Modal dengan state terakhir
     equity = st.number_input("Total Modal (IDR)", 
                              value=float(st.session_state['saved_equity']), 
                              step=100000.0, 
                              format="%.0f")
-    
-    # Input Kode Saham untuk Berita
-    ticker = st.text_input("Kode Saham (Contoh: MINA, CSIS, JMIA)", value="").upper()
+    ticker = st.text_input("Kode Saham (Contoh: MINA)", value="").upper()
 
 with col2:
-    # Field Risk dengan state terakhir
     risk_pct = st.number_input("Risk per Trade (%)", 
                                value=float(st.session_state['saved_risk']), 
                                step=0.1, 
                                format="%.1f")
     
-    # Tombol Simpan Pengaturan
     if st.button("💾 Simpan Modal & Risiko"):
         save_settings(equity, risk_pct)
-        st.toast("Pengaturan tersimpan!")
+        st.toast("Disimpan sementara di sesi ini!")
 
 st.divider()
 
-# Input Transaksi - Menghilangkan spinner browser via CSS di atas
-# Menggunakan step=1.0 agar tombol +/- Streamlit tetap ada untuk fraksi harga
+# --- Kalkulator ---
 col_a, col_b = st.columns(2)
 with col_a:
     price = st.number_input("Harga Beli (Entry)", value=1000, step=1)
 with col_b:
     stop_loss_price = st.number_input("Harga Stop Loss", value=950, step=1)
 
-# Perhitungan Logika Lot
 risk_amount = equity * (risk_pct / 100)
 risk_per_share = price - stop_loss_price
 
@@ -99,29 +93,51 @@ else:
 
 st.divider()
 
-# Fitur Berita Saham
+# --- Fitur Berita (Menggunakan XML Parsing Standard) ---
 if ticker:
     st.subheader(f"10 Berita Terbaru: {ticker}")
     try:
-        # Menggunakan RSS Feed Google News untuk berita saham Indonesia
+        # URL RSS Google News
         rss_url = f"https://news.google.com/rss/search?q={ticker}+stock+indonesia&hl=id&gl=ID&ceid=ID:id"
-        feed = feedparser.parse(rss_url)
+        
+        # Fetch menggunakan pyodide.http (Aman untuk browser)
+        response_content = open_url(rss_url).read()
+        
+        # Parsing XML manual tanpa feedparser
+        root = ET.fromstring(response_content)
         
         news_data = []
-        for entry in feed.entries[:10]:
+        # Loop cari item berita
+        for item in root.findall(".//item")[:10]:
+            title = item.find("title").text if item.find("title") is not None else "No Title"
+            link = item.find("link").text if item.find("link") is not None else "#"
+            pubDate = item.find("pubDate").text if item.find("pubDate") is not None else ""
+            
+            # Format tanggal sederhana
+            date_display = pubDate[:16] if len(pubDate) > 16 else pubDate
+            
             news_data.append({
-                "Tanggal": entry.published[:16],
-                "Judul Berita": entry.title,
-                "Link": entry.link
+                "Tanggal": date_display,
+                "Judul": title,
+                "Link": link
             })
         
         if news_data:
+            # Tampilkan sebagai Dataframe dengan Column Config untuk Link
             df_news = pd.DataFrame(news_data)
-            st.table(df_news)
+            st.dataframe(
+                df_news,
+                column_config={
+                    "Link": st.column_config.LinkColumn("Baca Berita")
+                },
+                hide_index=True,
+                use_container_width=True
+            )
         else:
-            st.write("Tidak ada berita ditemukan.")
+            st.warning("Tidak ada berita ditemukan.")
+            
     except Exception as e:
-        st.error(f"Gagal memuat berita: {e}")
+        st.error(f"Gagal mengambil berita. Pastikan koneksi internet stabil. Error: {e}")
             `,
           },
         },
