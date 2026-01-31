@@ -7,7 +7,7 @@
     <title>Kalkulator Lot</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.57.0/build/stlite.css" />
     <style>
-      /* CSS untuk menyembunyikan spinner/panah input angka */
+      /* CSS untuk menyembunyikan spinner/panah standar browser di input angka */
       input[type=number]::-webkit-inner-spin-button, 
       input[type=number]::-webkit-outer-spin-button { 
         -webkit-appearance: none; 
@@ -24,53 +24,63 @@
     <script>
       stlite.mount(
         {
-          // PERHATIKAN: HANYA PANDAS, JANGAN ADA FEEDPARSER
-          requirements: ["pandas"], 
+          requirements: ["pandas", "feedparser"], 
           entrypoint: "app.py",
           files: {
             "app.py": `
 import streamlit as st
 import pandas as pd
-import xml.etree.ElementTree as ET
-from pyodide.http import open_url
+import feedparser
 
-# --- Fungsi Simpan Setting ---
+# Fungsi untuk menyimpan ke browser storage via stlite
 def save_settings(equity, risk):
     st.session_state['saved_equity'] = equity
     st.session_state['saved_risk'] = risk
 
+# Inisialisasi data tersimpan (Default jika kosong)
 if 'saved_equity' not in st.session_state:
     st.session_state['saved_equity'] = 10000000.0
 if 'saved_risk' not in st.session_state:
     st.session_state['saved_risk'] = 1.0
 
-# --- Layout ---
 st.title("Kalkulator Lot")
 
+# Layout Utama
 col1, col2 = st.columns(2)
+
 with col1:
+    # Field Modal dengan state terakhir
     equity = st.number_input("Total Modal (IDR)", 
                              value=float(st.session_state['saved_equity']), 
-                             step=100000.0, format="%.0f")
-    ticker = st.text_input("Kode Saham (Contoh: MINA)", value="").upper()
+                             step=100000.0, 
+                             format="%.0f")
+    
+    # Input Kode Saham untuk Berita
+    ticker = st.text_input("Kode Saham (Contoh: MINA, CSIS, JMIA)", value="").upper()
 
 with col2:
+    # Field Risk dengan state terakhir
     risk_pct = st.number_input("Risk per Trade (%)", 
                                value=float(st.session_state['saved_risk']), 
-                               step=0.1, format="%.1f")
+                               step=0.1, 
+                               format="%.1f")
+    
+    # Tombol Simpan Pengaturan
     if st.button("💾 Simpan Modal & Risiko"):
         save_settings(equity, risk_pct)
-        st.toast("Disimpan sementara!")
+        st.toast("Pengaturan tersimpan!")
 
 st.divider()
 
-# --- Kalkulator ---
+# Input Transaksi - Menghilangkan spinner browser via CSS di atas
+# Menggunakan step=1.0 agar tombol +/- Streamlit tetap ada untuk fraksi harga
 col_a, col_b = st.columns(2)
 with col_a:
     price = st.number_input("Harga Beli (Entry)", value=1000, step=1)
 with col_b:
     stop_loss_price = st.number_input("Harga Stop Loss", value=950, step=1)
 
+# Perhitungan Logika Lot
 risk_amount = equity * (risk_pct / 100)
 risk_per_share = price - stop_loss_price
 
@@ -80,49 +90,36 @@ if risk_per_share > 0:
     total_investment = total_lots * 100 * price
     
     st.subheader("Hasil Analisis")
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Max Risk", f"Rp {risk_amount:,.0f}")
-    c2.metric("Jumlah Lot", f"{total_lots} Lot")
-    c3.metric("Total Beli", f"Rp {total_investment:,.0f}")
+    res1, res2, res3 = st.columns(3)
+    res1.metric("Max Risk", f"Rp {risk_amount:,.0f}")
+    res2.metric("Jumlah Lot", f"{total_lots} Lot")
+    res3.metric("Total Beli", f"Rp {total_investment:,.0f}")
 else:
-    st.error("Stop Loss harus di bawah harga beli!")
+    st.error("Harga Stop Loss harus lebih rendah dari Harga Beli.")
 
 st.divider()
 
-# --- Fitur Berita (Tanpa Feedparser) ---
+# Fitur Berita Saham
 if ticker:
-    st.subheader(f"Berita: {ticker}")
+    st.subheader(f"10 Berita Terbaru: {ticker}")
     try:
-        # RSS Google News
+        # Menggunakan RSS Feed Google News untuk berita saham Indonesia
         rss_url = f"https://news.google.com/rss/search?q={ticker}+stock+indonesia&hl=id&gl=ID&ceid=ID:id"
+        feed = feedparser.parse(rss_url)
         
-        # Ambil data
-        content = open_url(rss_url).read()
-        root = ET.fromstring(content)
-        
-        news_list = []
-        for item in root.findall(".//item")[:10]:
-            title = item.find("title").text
-            link = item.find("link").text
-            pubDate = item.find("pubDate").text
-            
-            news_list.append({
-                "Waktu": pubDate[:16],
-                "Judul": title,
-                "Link": link
+        news_data = []
+        for entry in feed.entries[:10]:
+            news_data.append({
+                "Tanggal": entry.published[:16],
+                "Judul Berita": entry.title,
+                "Link": entry.link
             })
-            
-        if news_list:
-            df = pd.DataFrame(news_list)
-            st.dataframe(
-                df,
-                column_config={"Link": st.column_config.LinkColumn("Baca")},
-                hide_index=True,
-                use_container_width=True
-            )
+        
+        if news_data:
+            df_news = pd.DataFrame(news_data)
+            st.table(df_news)
         else:
-            st.info("Tidak ada berita ditemukan.")
-            
+            st.write("Tidak ada berita ditemukan.")
     except Exception as e:
         st.error(f"Gagal memuat berita: {e}")
             `,
